@@ -17,7 +17,7 @@ const dead = (pid) => {
   }
 };
 import { posterOwner } from "./poster-owner.js";
-test("CLI renders six lossless axis posters, preserves sources and cleans owned browsers", async () => {
+test("CLI renders six standard-compressed axis posters, preserves sources and cleans owned browsers", async () => {
   const root = await mkdtemp(join(tmpdir(), "file-forge-posters-"));
   const input = join(root, "My_Model + 1.glb");
   const output = join(root, "out");
@@ -66,7 +66,8 @@ test("CLI renders six lossless axis posters, preserves sources and cleans owned 
     assert.equal(result.parameters.poster.ratio, "3:2");
     assert.deepEqual(result.parameters.image, {
       format: "webp",
-      encoding: "lossless",
+      encoding: "lossy",
+      quality: 80,
       resize: "none",
       workflow: "process-image",
     });
@@ -87,7 +88,7 @@ test("CLI renders six lossless axis posters, preserves sources and cleans owned 
     for (const [i, a] of result.assets.entries()) {
       assert.equal(basename(a.output), `my-model-1-${views[i]}.webp`);
       const bytes = await readFile(a.output);
-      assert.equal(bytes.toString("ascii", 12, 16), "VP8L");
+      assert.ok(bytes.includes(Buffer.from("VP8 ")));
       const meta = await sharp(bytes).metadata();
       assert.deepEqual([meta.width, meta.height, meta.hasAlpha], [96, 64, true]);
       const { data, info } = await sharp(bytes)
@@ -103,7 +104,7 @@ test("CLI renders six lossless axis posters, preserves sources and cleans owned 
           Boolean(colors[i][channel]),
           `correct face color for ${views[i]}`,
         );
-      assert.equal(a.lossless, true);
+      assert.equal(a.lossless, false);
       assert.equal(a.camera.orthographicScale, result.assets[0].camera.orthographicScale);
     }
     assert.deepEqual(await readFile(input), original);
@@ -241,7 +242,7 @@ test("failed rendering closes its browser and retains a failure manifest", async
   }
 });
 
-test("rendered PNG passes through the shared image workflow without changing pixels", async () => {
+test("rendered PNG passes through the shared image workflow using standard quality-80 encoding", async () => {
   const { Effect, FileSystem, Layer } = await import("effect");
   const { NodeServices } = await import("@effect/platform-node");
   const { openPosterRenderer, posterLayer, ImageEngineLive, processImage } =
@@ -262,7 +263,7 @@ test("rendered PNG passes through the shared image workflow without changing pix
           });
           const renderer = yield* openPosterRenderer(input, staging, { width: 80, height: 64 });
           yield* renderer.render("front", frame);
-          const image = yield* processImage(frame, output, { format: "webp" }, "lossless-webp");
+          const image = yield* processImage(frame, output, { format: "webp", quality: 80 });
           return { pid: renderer.pid, image };
         }),
       ).pipe(Effect.provide(Layer.mergeAll(NodeServices.layer, ImageEngineLive, posterLayer()))),
@@ -273,10 +274,10 @@ test("rendered PNG passes through the shared image workflow without changing pix
       [80, 64, "webp"],
     );
     assert.deepEqual(
-      await sharp(output).ensureAlpha().raw().toBuffer(),
-      await sharp(frame).ensureAlpha().raw().toBuffer(),
+      await readFile(output),
+      await sharp(frame).rotate().webp({ quality: 80 }).toBuffer(),
     );
-    assert.equal((await readFile(output)).toString("ascii", 12, 16), "VP8L");
+    assert.ok((await readFile(output)).includes(Buffer.from("VP8 ")));
     assert.ok(
       !(await readdir(root)).some(
         (name) => name.startsWith(".posters-") || name.startsWith(".file-forge-"),

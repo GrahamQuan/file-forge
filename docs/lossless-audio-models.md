@@ -35,4 +35,4 @@ New single-file deliveries and folders containing audio/models use schema v4. Ex
 
 Validation uses real CLI and MCP jobs: 16/24-bit PCM decoded-sample equality, floating-point/MP3 byte preservation, animated/textured GLB JSON and binary preservation, unchanged outcomes, manifest round trips, malformed/external inputs, folder collisions, and worker/staging cleanup. No UI testing is required.
 
-For rendered model previews, use the separate [six-angle poster workflow](model-posters.md). It leaves the GLB unchanged and emits lossless WebP derivatives; neither compression command automatically generates them.
+For rendered model previews, use the separate [six-angle poster workflow](model-posters.md). It leaves the GLB unchanged and emits quality-80 lossy WebP derivatives; neither compression command automatically generates them.

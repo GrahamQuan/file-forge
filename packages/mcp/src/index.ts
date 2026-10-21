@@ -76,7 +76,7 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("generate_model_posters", {
     description:
-      "Render six GLB views (front/back/left/right/top/bottom), then process each through the shared image workflow as lossless WebP without extra resizing. Transparent 16:9 canvas (1024x576) by default; ratio W:H selects another aspect, one axis derives the other, both define the canvas and must match an explicit ratio. Model axes define orientation. Requires local Chrome; preserves sources. Poll job_status.",
+      "Render six GLB views (front/back/left/right/top/bottom), then process each through the shared image workflow as quality-80 lossy WebP without extra resizing. Transparent 16:9 canvas (1024x576) by default; ratio W:H selects another aspect, one axis derives the other, both define the canvas and must match an explicit ratio. Model axes define orientation. Requires local Chrome; preserves sources. Poll job_status.",
     parameters: submission(ModelPostersRequest.fields),
     success,
     failure,

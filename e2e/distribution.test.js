@@ -158,7 +158,9 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
     );
     assert.equal(posters.assets.length, 6);
     assert.equal(posters.schemaVersion, 5);
-    assert.ok(posters.assets.every((asset) => asset.status === "succeeded" && asset.lossless));
+    assert.ok(
+      posters.assets.every((asset) => asset.status === "succeeded" && asset.lossless === false),
+    );
     // Start the installed runtime with an authorized root. PID and STDIO are owned by this test.
     server = spawn(executable, ["mcp"], {
       cwd: root,

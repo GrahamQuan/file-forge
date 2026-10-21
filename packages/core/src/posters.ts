@@ -50,11 +50,18 @@ export const generateModelPosters = (input: string, options: PosterOptions, pare
       status: "failed",
       parameters: {
         recursive: false,
-        image: { format: "webp", encoding: "lossless", resize: "none", workflow: "process-image" },
+        image: {
+          format: "webp",
+          encoding: "lossy",
+          quality: 80,
+          resize: "none",
+          workflow: "process-image",
+        },
         poster: {
           ...dimensions,
           format: "webp",
-          encoding: "lossless",
+          encoding: "lossy",
+          quality: 80,
           projection: "orthographic",
           pose: "default-scene",
           background: "transparent",
@@ -85,7 +92,8 @@ export const generateModelPosters = (input: string, options: PosterOptions, pare
               ...dimensions,
               ...renderer.renderer,
               format: "webp",
-              encoding: "lossless",
+              encoding: "lossy",
+              quality: 80,
               orientation: "gltf-y-up-front-positive-z",
             },
           },
@@ -94,12 +102,10 @@ export const generateModelPosters = (input: string, options: PosterOptions, pare
           const view = posterViews[index]!;
           const result = yield* renderer.render(view, path.join(staging, `${view}.png`));
           const processedPath = path.join(staging, `${view}.webp`);
-          const processed = yield* processImage(
-            result.output,
-            processedPath,
-            { format: "webp" },
-            "lossless-webp",
-          );
+          const processed = yield* processImage(result.output, processedPath, {
+            format: "webp",
+            quality: 80,
+          });
           yield* Effect.uninterruptible(
             Effect.gen(function* () {
               const output = path.join(directory, `${stem}-${view}.webp`);
@@ -118,7 +124,7 @@ export const generateModelPosters = (input: string, options: PosterOptions, pare
                 outputFormat: "webp",
                 outputWidth: processed.width,
                 outputHeight: processed.height,
-                lossless: true,
+                lossless: false,
                 optimization: "rendered-poster",
               };
               manifest = {
