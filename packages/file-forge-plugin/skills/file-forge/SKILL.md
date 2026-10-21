@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Inspect local image assets, compress images and videos with first-frame covers, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Use when the user requests these operations on existing local files. Does not generate new artwork or upload files.
+description: Inspect local image assets, compress folders, images and videos with first-frame covers, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Use when the user requests these operations on existing local files. Does not generate new artwork or upload files.
 ---
 
 # FileForge
@@ -12,11 +12,14 @@ Node.js >=22.13 and user-installed FFmpeg are required; Sharp is included with t
 
 ## Image/video compression workflow
 
-Before processing, ask for target **width and height in pixels** if either is missing.
-Ask only for missing values; reuse dimensions already supplied in the conversation.
-Do not guess dimensions, silently use source dimensions, or submit a job until both are known.
-Explain that these are maximum bounds: preserve aspect ratio, never enlarge, and round video
-sizes down to even pixels. The cover matches the actual encoded video dimensions.
+Width and height are optional maximum bounds. With neither supplied, skip resizing and keep the original dimensions.
+With one axis supplied, leave the other omitted so the original ratio determines it.
+With both supplied, fit inside the box. Never enlarge; explicitly resized video dimensions round down to even pixels.
+For directories use `compress_folder` with `operation: "folder-compress"`, `input`, `output`,
+and `options` (an empty object preserves the original dimensions). Preserve hierarchy in a new folder,
+normalize names to lowercase ASCII letters, digits and hyphens, and keep extensions separate.
+Non-media files are copied unchanged; symlinks, .DS_Store and animated images are skipped.
+Naming collisions fail before output creation. Report skipped and failed assets.
 
 ### Images (Sharp)
 
@@ -79,6 +82,7 @@ Supported command equivalents:
 
 ```text
 file-forge inspect INPUT... --json
+file-forge folder compress INPUT_DIRECTORY --width 512 --output OUTPUT --json
 file-forge image compress INPUT... --width 800 --height 600 --output OUTPUT --json
 file-forge video compress INPUT.mp4 --width 1280 --height 720 --output OUTPUT --json
 file-forge favicon generate INPUT.png --size 64 --output OUTPUT --json
@@ -93,3 +97,7 @@ active media work; retain completed outputs and inspect delivery metadata.
 
 No uploads, general audio/composition CLI operations, ZIP intake, GLB processing, SVG-to-JSX, specialized delivery
 formats, persistent jobs, or self-update are implemented. Do not invent tools or promise those features.
+
+## Explicit source-folder renaming
+
+Use `rename_folders` (`operation: "folder-rename"`) or `folder rename INPUT --renames PLAN.json` only when the user requests changing original directory names. The plan is an array of `{ "path": "relative/subfolder", "name": "desired-name" }`; `path: "."` selects the input root. Custom names are exact; derive lowercase/hyphen names only when requested. Ask which root/subfolders and names when unclear. Preview first (omit apply), show mappings, and use `apply: true` / `--apply` only for the user's authorized mapping. Reuse explicit authorization; do not ask again for settled names. This does not rename files or compress media. Default compression still creates a new folder. Receipt output must be outside both old and new source roots. MCP cannot rename its configured workspace root. On collision/failure stop, preserve completed renames, show receipt current paths and ask with a proposed solution. Never retry the full plan blindly.

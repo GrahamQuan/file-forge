@@ -73,3 +73,11 @@ and the vector tracer are included. Recipients need no npm/pnpm or checkout. Imm
 verified payloads, command ownership checks, a cooperative installer lock, and atomic symlink activation
 preserve earlier builds and support rollback. Public hosting, signing, self-update, other targets, and manual
 Codex host acceptance remain separate gates. This resolves the local package/install layout gate above.
+
+## 2026-10-21 folder processing
+
+The [folder contract](../20261021-folder-processing/TECH.md) adds recursive CLI/MCP folder compression, hierarchy-preserving normalized names, copied non-media content, explicit skips, collision preflight, and schema-v2 folder manifests with legacy-v1 reading. Compression size options now accept either axis alone and skip resizing and preserve original dimensions when neither is supplied. These changes are local source functionality pending the next release.
+
+## 2026-10-21 explicit source-folder renaming
+
+The [source-folder rename contract](../20261021-source-folder-renaming/TECH.md) adds preview/apply directory mappings through CLI and MCP, with schema-v3 progress receipts. This explicitly requested operation changes original directory names while preserving file contents; normal media workflows still write new copies. Validated locally with `pnpm check` and all 16 E2E tests. No release or installed-runtime upgrade is included.

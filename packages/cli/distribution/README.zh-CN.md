@@ -32,6 +32,9 @@ file-forge favicon generate /path/to/logo.png --size 64 --output /path/to/output
 所有 MCP 输入和输出必须位于该工作区。本地独立插件可通过 `FILE_FORGE_EXECUTABLE` 指向此命令。
 请在宿主 PATH 中配置 Node，并通过 PATH 或 `FFMPEG_PATH` 提供 FFmpeg。本安装器不修改 Codex 配置。
 
-已实现检查、图片处理、网站图标、通用清单导出及会话级 MCP 任务。
-上传、持久任务、公开发布、自动升级及其他平台仍待实现。
+当前源码支持图片、视频和文件夹压缩、检查、格式转换、网站图标、原目录重命名预览/应用、
+版本化清单导出及会话级 MCP 任务。未指定宽高时保留原尺寸；请查看本压缩包的帮助确认实际能力。
+GitHub Actions 会发布经过验证的补丁版本，并提供单独的匹配插件 ZIP 和校验和。
+上传、持久任务、自动升级及其他分发平台尚未实现。
+可复用的项目 skill 及复制脚本在源码仓库中维护；安装运行时不会复制该 skill 或注册 Codex 插件。
 第三方许可文件随生产依赖保留在 `runtime/node_modules` 中。

@@ -2,6 +2,8 @@ import { Effect, Schema } from "effect";
 import { CompressionOptionsSchema, ImageOptionsSchema, FaviconSizeSchema } from "@file-forge/media";
 import {
   compressImages,
+  compressFolder,
+  renameFolders,
   compressVideoFile,
   exportManifest,
   generateFavicons,
@@ -37,6 +39,19 @@ export const VideoCompressionRequest = Schema.Struct({
   options: CompressionOptionsSchema,
   output: text,
 });
+export const FolderCompressionRequest = Schema.Struct({
+  operation: Schema.Literal("folder-compress"),
+  input: text,
+  options: CompressionOptionsSchema,
+  output: text,
+});
+export const FolderRenameRequest = Schema.Struct({
+  operation: Schema.Literal("folder-rename"),
+  input: text,
+  output: text,
+  renames: Schema.Array(Schema.Struct({ path: text, name: text })).check(Schema.isMinLength(1)),
+  apply: Schema.optional(Schema.Boolean),
+});
 export const FaviconRequest = Schema.Struct({
   operation: Schema.Literal("favicon"),
   input: text,
@@ -55,6 +70,8 @@ export const OperationRequest = Schema.Union([
   InspectRequest,
   ImageCompressionRequest,
   VideoCompressionRequest,
+  FolderCompressionRequest,
+  FolderRenameRequest,
   ImageRequest,
   FaviconRequest,
   ExportRequest,
@@ -97,6 +114,10 @@ export const executeRequest = (input: unknown) =>
           request.output,
           request.recursive,
         );
+      case "folder-rename":
+        return yield* renameFolders(request.input, request.renames, request.output, request.apply);
+      case "folder-compress":
+        return yield* compressFolder(request.input, request.options, request.output);
       case "video-compress":
         return yield* compressVideoFile(request.input, request.options, request.output);
       case "inspect":

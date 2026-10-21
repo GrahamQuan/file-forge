@@ -18,7 +18,7 @@ export class OperationError extends Data.TaggedError("OperationError")<{
   readonly detail: string;
 }> {}
 // Effect 4.0.2 FileSystem.stat follows links and has no lstat operation.
-const isSymlink = (file: string) =>
+export const isSymlink = (file: string) =>
   Effect.tryPromise({
     try: () => lstat(file).then((stat) => stat.isSymbolicLink()),
     catch: () => new OperationError({ code: "IO_FAILED", detail: "Cannot inspect file identity" }),
@@ -43,7 +43,7 @@ export const AssetSchema = Schema.Struct({
   errorCode: Schema.optional(Schema.String),
 });
 export type Asset = typeof AssetSchema.Type;
-export const ManifestSchema = Schema.Struct({
+const LegacyManifestSchema = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   taskId: Schema.String,
   createdAt: Schema.String,
@@ -60,7 +60,31 @@ export const ManifestSchema = Schema.Struct({
   }),
   assets: Schema.Array(AssetSchema),
 });
+export const FolderRenameEntrySchema = Schema.Struct({
+  source: Schema.String,
+  output: Schema.String,
+  current: Schema.String,
+  status: Schema.Literals(["planned", "succeeded", "failed"]),
+  errorCode: Schema.optional(Schema.String),
+});
+export const ManifestSchema = Schema.Union([
+  LegacyManifestSchema,
+  Schema.Struct({
+    ...LegacyManifestSchema.fields,
+    schemaVersion: Schema.Literal(2),
+    operation: Schema.Literal("folder"),
+  }),
+  Schema.Struct({
+    ...LegacyManifestSchema.fields,
+    schemaVersion: Schema.Literal(3),
+    operation: Schema.Literal("folder-rename"),
+    apply: Schema.Boolean,
+    renames: Schema.Array(FolderRenameEntrySchema),
+  }),
+]);
 export type Manifest = typeof ManifestSchema.Type;
+export { renameFolders } from "./rename-folders.js";
+export { compressFolder } from "./folder.js";
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 export const outputName = (name: string, identity: string, format: string) => {
   const stem =
@@ -74,7 +98,7 @@ export const outputName = (name: string, identity: string, format: string) => {
       .slice(0, 80) || "asset";
   return `${stem}-${hash(identity).slice(0, 16)}.${format}`;
 };
-const imageExtensions = new Set([
+export const imageExtensions = new Set([
   ".png",
   ".jpg",
   ".jpeg",
@@ -224,6 +248,19 @@ export const renderReport = (manifest: Manifest, includePaths = false) =>
     "",
     "| Asset | Source | Status | Output | Error |",
     "| --- | --- | --- | --- | --- |",
+    ...("renames" in manifest
+      ? [
+          `Apply: ${manifest.apply}`,
+          "",
+          "| Original folder | Final folder | Current folder | Status | Error |",
+          "| --- | --- | --- | --- | --- |",
+          ...manifest.renames.map(
+            (entry) =>
+              `| ${safeText(entry.source)} | ${safeText(entry.output)} | ${safeText(entry.current)} | ${entry.status} | ${safeText(entry.errorCode ?? "")} |`,
+          ),
+          "",
+        ]
+      : []),
     ...manifest.assets.map(
       (asset) =>
         `| ${safeText(asset.assetId)} | ${safeText(includePaths ? asset.source : asset.originalName)} | ${asset.status} | ${safeText(asset.output ? (includePaths ? asset.output : asset.output.split(/[\\/]/).pop()!) : "")} | ${safeText(asset.errorCode ?? "")} |`,
@@ -468,6 +505,8 @@ export {
   ImageRequest,
   ImageCompressionRequest,
   VideoCompressionRequest,
+  FolderCompressionRequest,
+  FolderRenameRequest,
   FaviconRequest,
   ExportRequest,
   executeRequest,
@@ -491,7 +530,10 @@ export const compressVideoFile = (
 ) =>
   Effect.gen(function* () {
     const validated = yield* validateCompressionOptions(options);
-    if (validated.width < 2 || validated.height < 2)
+    if (
+      (validated.width !== undefined && validated.width < 2) ||
+      (validated.height !== undefined && validated.height < 2)
+    )
       return yield* invalid("Video dimensions must be at least 2 pixels");
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -510,8 +552,9 @@ export const compressVideoFile = (
       parameters: {
         recursive: false,
         video: {
-          width: validated.width,
-          height: validated.height,
+          ...Object.fromEntries(
+            Object.entries(validated).filter(([, value]) => value !== undefined),
+          ),
           coverQuality: validated.quality ?? 80,
           crf: 23,
         },

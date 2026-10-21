@@ -1,0 +1,23 @@
+# Image inspection, compression and conversion
+
+Inspect only when requested or useful to the operation; inspection is not permission for unrelated processing. The current inspector handles image metadata, with explicit unsupported/skipped entries for other formats. Use FFprobe for video stream metadata.
+
+```sh
+file-forge inspect "/absolute/input.png" --json
+file-forge inspect "/absolute/assets" --recursive --json
+file-forge image compress "/absolute/input.png" --json
+file-forge image compress "/absolute/input.png" --width 300 --json
+file-forge image process "/absolute/input.png" --format png --quality 90 --json
+```
+
+Compression produces WebP at quality 80 by default; supported explicit quality is integer 1–100. No dimensions means no resizing. Width-only or height-only sets that maximum while preserving aspect ratio. Two axes mean fit inside, not exact square/crop/stretch. Small images are not enlarged. Orientation metadata is applied by the image pipeline.
+
+For explicit output formats use `image process`, supporting WebP, JPEG, PNG and AVIF; it needs at least one explicit option such as format, quality or a dimension. Image compression accepts multiple files and opt-in `--recursive`; it produces flat, uniquely named outputs. For preserving directory hierarchy, use [folders](folders.md).
+
+MCP request bodies, plus a unique `requestId`:
+
+- `inspect_files`: `{"operation":"inspect","files":["/absolute/input.png"],"recursive":false}`
+- `compress_images`: `{"operation":"image-compress","files":["/absolute/input.png"],"options":{},"output":"/absolute/output-parent"}`
+- `process_images`: `{"operation":"image","files":["/absolute/input.png"],"options":{"format":"avif","width":300},"output":"/absolute/output-parent"}`
+
+Read live schemas before submitting. Animated images and unsupported formats are reported, not flattened silently. Originals remain unchanged. [Validate the result](execution.md) rather than claiming success solely from exit status.

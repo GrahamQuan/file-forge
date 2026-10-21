@@ -31,5 +31,14 @@ export const scopeRequest = (input: unknown, root: string) =>
     if ("input" in result) result.input = yield* resolve(result.input);
     if ("manifest" in result && result.manifest) result.manifest = yield* resolve(result.manifest);
     if ("output" in result) result.output = yield* resolve(result.output);
+    if (result.operation === "folder-rename") {
+      const source = yield* fs.realPath(result.input);
+      if (result.renames.some((entry) => entry.path === ".") && source === root)
+        return yield* Effect.fail({ code: "PATH_OUTSIDE_ROOT" });
+      for (const entry of result.renames) {
+        yield* resolve(path.resolve(source, entry.path));
+        yield* resolve(path.join(path.dirname(path.resolve(source, entry.path)), entry.name));
+      }
+    }
     return result as OperationRequest;
   });

@@ -1,0 +1,4 @@
+interface:
+  display_name: "FileForge"
+  short_description: "Set up FileForge and process local media files"
+  default_prompt: "Use $file-forge to check setup and process my selected files, asking me with a recommended solution if tools, information, or repairs are needed."

@@ -152,6 +152,7 @@ test("plugin-backed MCP executes all local operations, scopes paths, deduplicate
     await initialize(client);
     const list = await client.request("tools/list");
     assert.deepEqual(list.result.tools.map((tool) => tool.name).sort(), [
+      "compress_folder",
       "compress_images",
       "compress_video",
       "export_manifest",
@@ -161,6 +162,7 @@ test("plugin-backed MCP executes all local operations, scopes paths, deduplicate
       "job_cancel",
       "job_status",
       "process_images",
+      "rename_folders",
     ]);
     assert.equal(
       decode(await call(client, "file_forge_info")).root,
@@ -195,7 +197,7 @@ test("plugin-backed MCP executes all local operations, scopes paths, deduplicate
     };
     const rejected = await call(client, "compress_images", {
       ...compressedRequest,
-      options: { width: 32 },
+      options: { width: 0 },
     });
     assert.ok(rejected.error || rejected.result?.isError);
     decode(await call(client, "compress_images", compressedRequest));
@@ -438,6 +440,96 @@ test("MCP cancellation, busy rejection, signal/EOF cleanup, and prerequisite fai
     await client.close();
     client = undefined;
     assert.deepEqual((await readdir(join(root, "inputs"))).length, 40);
+  } finally {
+    if (client) await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("plugin MCP compresses a nested folder with a single size axis", async () => {
+  const root = await mkdtemp(join(tmpdir(), "file-forge-folder-mcp-"));
+  let client;
+  try {
+    const input = join(root, "Example.COM", "Some Route");
+    await mkdir(input, { recursive: true });
+    await sharp({ create: { width: 800, height: 400, channels: 3, background: "blue" } })
+      .png()
+      .toFile(join(input, "My_Image.png"));
+    client = await connect(root);
+    await initialize(client);
+    const listing = await client.request("tools/list");
+    assert.ok(listing.result.tools.some((t) => t.name === "compress_folder"));
+    decode(
+      await call(client, "compress_folder", {
+        requestId: "folder",
+        operation: "folder-compress",
+        input: join(root, "Example.COM"),
+        output: join(root, "output"),
+        options: { width: 300 },
+      }),
+    );
+    const job = await terminal(client, "folder");
+    assert.equal(job.status, "succeeded", JSON.stringify(job));
+    const asset = job.result.assets[0];
+    const metadata = await sharp(asset.output).metadata();
+    assert.deepEqual([metadata.width, metadata.height], [300, 150]);
+    assert.ok(asset.output.endsWith("example-com/some-route/my-image.webp"));
+    decode(
+      await call(client, "compress_folder", {
+        requestId: "original-size",
+        operation: "folder-compress",
+        input: join(root, "Example.COM"),
+        output: join(root, "output"),
+        options: {},
+      }),
+    );
+    const originalSize = await terminal(client, "original-size");
+    assert.equal(originalSize.status, "succeeded", JSON.stringify(originalSize));
+    const originalMeta = await sharp(originalSize.result.assets[0].output).metadata();
+    assert.deepEqual([originalMeta.width, originalMeta.height], [800, 400]);
+  } finally {
+    if (client) await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("MCP previews and applies directory renames while protecting its configured root", async () => {
+  const root = await mkdtemp(join(tmpdir(), "file-forge-rename-mcp-"));
+  let client;
+  try {
+    const input = join(root, "Original Root");
+    await mkdir(join(input, "Sub Folder"), { recursive: true });
+    client = await connect(root);
+    await initialize(client);
+    const request = {
+      operation: "folder-rename",
+      input,
+      output: join(root, "receipts"),
+      renames: [
+        { path: ".", name: "renamed-root" },
+        { path: "Sub Folder", name: "sub-folder" },
+      ],
+    };
+    decode(await call(client, "rename_folders", { ...request, requestId: "preview" }));
+    const preview = await terminal(client, "preview");
+    assert.equal(preview.status, "succeeded", JSON.stringify(preview));
+    assert.equal(preview.result.apply, false);
+    assert.deepEqual(await readdir(input), ["Sub Folder"]);
+    const rejected = decode(
+      await call(client, "rename_folders", {
+        ...request,
+        requestId: "root",
+        input: root,
+        renames: [{ path: ".", name: "outside" }],
+        apply: true,
+      }),
+    );
+    assert.equal(rejected.code, "PATH_OUTSIDE_ROOT");
+    decode(await call(client, "rename_folders", { ...request, requestId: "apply", apply: true }));
+    const applied = await terminal(client, "apply");
+    assert.equal(applied.status, "succeeded", JSON.stringify(applied));
+    assert.deepEqual(await readdir(join(root, "renamed-root")), ["sub-folder"]);
+    assert.ok(dead(applied.workerPid));
   } finally {
     if (client) await client.close();
     await rm(root, { recursive: true, force: true });

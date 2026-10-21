@@ -37,6 +37,11 @@ For Codex, configure the installed `PREFIX/bin/file-forge` with argument `mcp` a
 FileForge plugin can use `FILE_FORGE_EXECUTABLE` pointing to this installed executable. Configure Node
 on the host's PATH and FFmpeg on PATH or through `FFMPEG_PATH`. No Codex configuration is changed here.
 
-Only inspection, image processing, favicons, generic manifest export, and session-local MCP jobs are
-implemented. Uploads, durable jobs, public releases, automatic updates, and other platforms remain planned.
+The current source supports image/video/folder compression, inspection, conversion, favicons, explicit
+source-directory rename preview/apply, versioned manifest export, and session-local MCP jobs. With no
+width/height, compression preserves original dimensions. Check this archive’s help for its capabilities.
+GitHub Actions publishes tested patch releases with a separate matching plugin ZIP and checksums.
+Uploads, durable jobs, automatic updates, and other distribution platforms remain unimplemented.
+The reusable project skill and its copy helper are maintained in the source checkout; runtime
+installation does not copy that skill into projects or register the Codex plugin.
 Third-party licenses are retained alongside the included production dependencies in `runtime/node_modules`.

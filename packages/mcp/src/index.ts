@@ -18,6 +18,8 @@ import { NodeServices } from "@effect/platform-node";
 import {
   ImageCompressionRequest,
   VideoCompressionRequest,
+  FolderCompressionRequest,
+  FolderRenameRequest,
   InspectRequest,
   ImageRequest,
   FaviconRequest,
@@ -50,15 +52,29 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("compress_images", {
     description:
-      "Resize and compress images to WebP. Ask the user for missing width or height before submitting. Poll job_status.",
+      "Resize and compress images to WebP. Omitted axes preserve aspect ratio; no size skips resizing and preserves original dimensions. Poll job_status.",
     parameters: submission(ImageCompressionRequest.fields),
     success,
     failure,
   }).annotate(Tool.Strict, true),
   Tool.make("compress_video", {
     description:
-      "Resize and compress one video to MP4 and create a first-frame WebP cover matching the resulting video dimensions. Ask for missing width or height first. Poll job_status.",
+      "Resize and compress one video to MP4 and create a first-frame WebP cover matching the resulting video dimensions. Omitted axes preserve aspect ratio; no size skips resizing and preserves original dimensions. Poll job_status.",
     parameters: submission(VideoCompressionRequest.fields),
+    success,
+    failure,
+  }).annotate(Tool.Strict, true),
+  Tool.make("compress_folder", {
+    description:
+      "Recursively compress a folder into a new normalized hierarchy. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional width/height limits preserve ratio; no size preserves original dimensions. Poll job_status.",
+    parameters: submission(FolderCompressionRequest.fields),
+    success,
+    failure,
+  }).annotate(Tool.Strict, true),
+  Tool.make("rename_folders", {
+    description:
+      "Preview or apply explicit SOURCE directory renames. Paths are relative to input; dot selects the input root. Default preview; apply=true mutates originals. No file processing. Poll job_status.",
+    parameters: submission(FolderRenameRequest.fields),
     success,
     failure,
   }).annotate(Tool.Strict, true),
@@ -224,6 +240,8 @@ const handlers = (root: string) =>
         process_images: submit,
         compress_images: submit,
         compress_video: submit,
+        compress_folder: submit,
+        rename_folders: submit,
         generate_favicons: submit,
         export_manifest: submit,
         job_status: ({ requestId }: { requestId: string }) =>

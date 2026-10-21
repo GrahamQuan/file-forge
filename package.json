@@ -12,7 +12,8 @@
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm build",
     "test:e2e": "pnpm build && vitest run",
     "file-forge": "sh packages/cli/dist/launcher.js",
-    "package:runtime": "pnpm build && node packages/cli/dist/archive.js"
+    "package:runtime": "pnpm build && node packages/cli/dist/archive.js",
+    "skill:copy": "node packages/cli/dist/copy-skill.js"
   },
   "devDependencies": {
     "@effect/platform-node": "4.0.2",

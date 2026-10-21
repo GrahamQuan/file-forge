@@ -53,18 +53,20 @@ const sharpEffect = <A>(run: () => Promise<A>) =>
 export const ImageEngineLive = Layer.succeed(ImageEngine, {
   inspect: (input) => sharpEffect(() => sharp(input).metadata()),
   process: (input, output, options) =>
-    sharpEffect(() =>
-      sharp(input)
-        .rotate()
-        .resize({
+    sharpEffect(() => {
+      let image = sharp(input).rotate();
+      if (options.width !== undefined || options.height !== undefined) {
+        image = image.resize({
           width: options.width,
           height: options.height,
           fit: "inside",
           withoutEnlargement: true,
-        })
+        });
+      }
+      return image
         .toFormat(options.format ?? "webp", { quality: options.quality ?? 80 })
-        .toFile(output),
-    ),
+        .toFile(output);
+    }),
 });
 export const inspectImage = (input: string) =>
   Effect.flatMap(ImageEngine, (engine) => engine.inspect(input));
@@ -191,10 +193,10 @@ export {
   type FaviconBundle,
 } from "./favicon.js";
 
-// Compression workflows require an explicit bounding box before any output is created.
+// A missing axis is automatic; omitting both axes leaves the original size unchanged.
 export const CompressionOptionsSchema = Schema.Struct({
-  width: dimension,
-  height: dimension,
+  width: Schema.optional(dimension),
+  height: Schema.optional(dimension),
   quality: ImageOptionsSchema.fields.quality,
 });
 export type CompressionOptions = typeof CompressionOptionsSchema.Type;
@@ -202,7 +204,7 @@ export const validateCompressionOptions = (input: unknown) =>
   Schema.decodeUnknownEffect(CompressionOptionsSchema)(input).pipe(
     Effect.mapError(
       () =>
-        new MediaError({ code: "INVALID_INPUT", detail: "Supply both width and height in pixels" }),
+        new MediaError({ code: "INVALID_INPUT", detail: "Dimensions must be positive integers" }),
     ),
   );
 
@@ -211,7 +213,10 @@ export const compressVideo = (input: string, directory: string, options: Compres
   Effect.scoped(
     Effect.gen(function* () {
       const validated = yield* validateCompressionOptions(options);
-      if (validated.width < 2 || validated.height < 2)
+      if (
+        (validated.width !== undefined && validated.width < 2) ||
+        (validated.height !== undefined && validated.height < 2)
+      )
         return yield* new MediaError({
           code: "INVALID_INPUT",
           detail: "Video dimensions must be at least 2 pixels",
@@ -224,7 +229,8 @@ export const compressVideo = (input: string, directory: string, options: Compres
       const frame = path.join(staging, "frame.png");
       const cover = path.join(staging, "cover.webp");
       // Keep aspect ratio, never enlarge, and round down to even H.264 dimensions.
-      const scale = `scale=w='min(iw,${validated.width})':h='min(ih,${validated.height})':force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1`;
+      const ratio = `min(1,min(${validated.width === undefined ? "1" : `${validated.width}/(iw*sar)`},${validated.height === undefined ? "1" : `${validated.height}/ih`}))`;
+      const scale = `scale=w='trunc(iw*sar*${ratio}/2)*2':h='trunc(ih*${ratio}/2)*2',setsar=1`;
       yield* runFfmpeg([
         "-n",
         "-i",
@@ -233,8 +239,7 @@ export const compressVideo = (input: string, directory: string, options: Compres
         "0:v:0",
         "-map",
         "0:a:0?",
-        "-vf",
-        scale,
+        ...(validated.width !== undefined || validated.height !== undefined ? ["-vf", scale] : []),
         "-c:v",
         "libx264",
         "-crf",
@@ -252,10 +257,7 @@ export const compressVideo = (input: string, directory: string, options: Compres
         temporary,
       ]);
       yield* runFfmpeg(["-n", "-i", temporary, "-map", "0:v:0", "-frames:v", "1", frame]);
-      const metadata = yield* inspectImage(frame);
       const result = yield* processImage(frame, cover, {
-        width: metadata.width!,
-        height: metadata.height!,
         quality: validated.quality,
         format: "webp",
       });

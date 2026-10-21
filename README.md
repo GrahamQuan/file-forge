@@ -4,7 +4,17 @@
 
 Local media processing for people, scripts, and coding agents, powered by Sharp and FFmpeg. Available through a CLI and local MCP tools.
 
-**Preview:** image processing, video compression, favicon generation, inspection, and delivery manifests are available. Uploads, persistent jobs, and self-update are not yet implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
+**Source capabilities:** image/video/folder compression, image conversion, favicon generation, inspection, explicit source-folder renaming, and versioned delivery manifests are implemented. Uploads, persistent jobs, and self-update are not yet implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
+
+Source folders can also be renamed explicitly with `folder rename INPUT --renames PLAN.json`: preview by default, `--apply` to apply an exact root/subfolder mapping. File contents remain unchanged; see [usage](docs/usage.md#rename-original-folders-explicitly).
+
+## Local guides
+
+- [Install FileForge and connect Codex](docs/installation.md)
+- [Use the CLI and MCP tools](docs/usage.md)
+- [Current capabilities and remaining work](docs/current-capabilities.md)
+- [Copy the reusable skill into another project](docs/skill-distribution.md)
+- [Documentation index for coding agents](docs/README.md)
 
 ## Quick start
 
@@ -28,6 +38,9 @@ pnpm --silent file-forge image compress ./assets --width 1200 --height 800 --out
 # Compress a video to MP4 and generate a WebP cover
 pnpm --silent file-forge video compress ./clip.mp4 --width 1280 --height 720 --output ./delivery --json
 
+# Compress a directory into a normalized hierarchy, preserving original dimensions
+pnpm --silent file-forge folder compress ./assets --output ./delivery --json
+
 # Generate PNG, ICO, and traced SVG favicons from a static PNG
 pnpm --silent file-forge favicon generate ./logo.png --size 64 --output ./icons --json
 
@@ -35,16 +48,28 @@ pnpm --silent file-forge favicon generate ./logo.png --size 64 --output ./icons 
 pnpm --silent file-forge manifest export ./assets --recursive --output ./delivery --json
 ```
 
-Compression requires both width and height, preserves aspect ratio, and never enlarges. Smaller file sizes are not guaranteed. For more control, `image process` supports WebP, JPEG, PNG, and AVIF; use `--help` for options.
+Compression keeps the original dimensions when no width or height is supplied. Supply `--width` or `--height` alone for an automatic other axis, or both for a bounding box. Aspect ratio is preserved without enlargement. Use `folder compress <directory>` to recursively compress media into a new normalized hierarchy, copy non-media files unchanged, and skip `.DS_Store`, symlinks, and animated images. Naming collisions fail before output creation. Smaller file sizes are not guaranteed. For more control, `image process` supports WebP, JPEG, PNG, and AVIF; use `--help` for options.
 
-Outputs go into a new `file-forge-<id>` directory with `manifest.json` and `report.md`. Source files are preserved. Keep output directories outside input directories. `--json` emits the final result to stdout; diagnostics go to stderr.
+Media outputs and rename receipts go into a new `file-forge-<id>` directory with `manifest.json` and `report.md`. Media source files are preserved; applying an explicit folder-rename plan changes directory names only. Keep output directories outside input directories. `--json` emits the final result to stdout; diagnostics go to stderr.
 
 English is the default. Save Chinese as your preference with `file-forge config set language zh-CN`, or use `--language en|zh-CN` for one invocation.
 
 ## Codex and installation
 
 - **Codex / MCP:** follow the [setup guide](packages/file-forge-plugin/SETUP.md). Set `FILE_FORGE_ROOT` explicitly; tool paths must stay within it. Jobs last for the MCP session only.
-- **macOS Apple Silicon archive:** run `pnpm package:runtime` and follow the [installation guide](packages/cli/distribution/README.md). Download published builds from [GitHub Releases](https://github.com/GrahamQuan/file-forge/releases); the first download appears after a successful main-branch release. Node.js and FFmpeg are installed separately; installing the plugin does not install the runtime.
+- **macOS Apple Silicon archive:** run `pnpm package:runtime` and follow the [installation guide](packages/cli/distribution/README.md). Download published builds from [GitHub Releases](https://github.com/GrahamQuan/file-forge/releases); inspect the selected release assets and capabilities before installing. Node.js and FFmpeg are installed separately; installing the plugin does not install the runtime.
+
+## Reusable project skill
+
+The source of truth is [skills/file-forge](skills/file-forge/SKILL.md): a routing map and focused references for setup and supported operations. It asks with a recommended solution when tools, essential information or repairs are missing.
+
+```sh
+pnpm build
+pnpm skill:copy --project "/Users/a6677/Documents/projects/ProductDesignSkills" --dry-run
+pnpm skill:copy --project "/Users/a6677/Documents/projects/ProductDesignSkills"
+```
+
+Copy creates or fully replaces the target skill from this repository; stale target files are removed from the active copy. Identical copies are unchanged. Previous copies are retained as recovery backups outside the active skills directory. This copies the skill to `<project>/.agents/skills/file-forge`; it does not install the runtime or Codex plugin. See [skill distribution](docs/skill-distribution.md).
 
 ## Development
 
@@ -54,6 +79,8 @@ TypeScript + Effect in a pnpm/Turborepo monorepo. CLI and MCP share core operati
 pnpm check       # Lint, formatting, types, and build
 pnpm test:e2e    # Real non-UI CLI and media flows; requires FFmpeg
 ```
+
+The source checkout may contain features absent from an installed release. See [current capabilities](docs/current-capabilities.md) before interpreting historical specs.
 
 See the [product scope](specs/20261009-first-draft/PRODUCT.md), [technical design](specs/20261009-first-draft/TECH.md), and [implementation status](specs/20261009-first-draft/IMPLEMENTATION.md) for details.
 
@@ -65,4 +92,4 @@ See the [product scope](specs/20261009-first-draft/PRODUCT.md), [technical desig
 
 Pushes to `main` run `pnpm check` and real E2E on macOS arm64 before publishing the next patch version (`0.0.1`, `0.0.2`, ...). Pull requests only validate. Each release includes the runtime archive, a matching plugin ZIP, and SHA-256 sidecars. Verify the checksum before extraction, then run the archive installer. To upgrade, install the newer archive using the same prefix and reconnect Codex MCP; automatic `--upgrade` remains unavailable. Install/configure the matching plugin separately. Node.js and FFmpeg remain external prerequisites.
 
-Release tags identify the tested source commit; CI stamps release versions in its disposable checkout. No version commits are pushed back to main. Completed release reruns do not publish duplicates. Failed drafts require inspection/recovery and are never overwritten automatically; reserved tags may leave version gaps. The repository must allow GitHub Actions to write releases/tags. Public workflow execution has not been verified locally.
+Release tags identify the tested source commit; CI stamps release versions in its disposable checkout. No version commits are pushed back to main. Completed release reruns do not publish duplicates. Failed drafts require inspection/recovery and are never overwritten automatically; reserved tags may leave version gaps. The repository must allow GitHub Actions to write releases/tags. Local checks do not establish whether a particular remote workflow or release succeeded; verify it on GitHub.

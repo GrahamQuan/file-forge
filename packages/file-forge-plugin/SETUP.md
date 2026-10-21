@@ -100,10 +100,16 @@ Then ask it to cancel a running batch and verify terminal status. Check that sta
 no worker survives disconnect, and the agent does not retry uncertain writes through another route.
 The CLI additionally supports language settings, help, and version; these are setup commands rather than
 media MCP tools. Automated `e2e/mcp.test.js` drives the actual packaged bootstrap over STDIO, checks
-all four operations and lifecycle behavior. Installing/selecting this plugin in a Codex chat is a separate
+implemented operations and lifecycle behavior. Installing/selecting this plugin in a Codex chat is a separate
 manual acceptance step, not an automated test claim.
 
 Jobs are session-only, one at a time, with 128 retained records. Keep each accepted request ID for polling
 and cancellation. After reconnection, `UNKNOWN_JOB` cannot tell you whether files were written previously.
 Inspect known destinations before retrying. Cancellation normally retains completed files; forced cleanup
 after 30 seconds may leave incomplete artifacts that require inspection. Never delete source data.
+
+## Reusable setup skill
+
+The full setup and operation map is maintained at `skills/file-forge` in the FileForge source repository. Use `pnpm skill:copy --project /absolute/project` after building to copy it into a consuming project. This is separate from installing this plugin. The plugin ZIP ships its compact `skills/file-forge/SKILL.md`, MCP configuration and bootstrap; it does not include the full reusable skill references.
+
+The source plugin includes folder compression and explicit source-directory rename tools. `rename_folders` previews by default; `apply: true` requires an authorized mapping. It cannot rename the configured MCP workspace root. No-size compression keeps original dimensions. Check the installed version’s schemas rather than assuming source changes are already in a published build.

@@ -34,8 +34,10 @@ Usage:
   file-forge favicon generate <input.png> [--size 64] [--output DIR] [--json]
   file-forge inspect <files...> [--recursive] [--json]
   file-forge image process <files...> [--width N] [--height N] [--quality N] [--format webp|jpeg|png|avif] [--output DIR] [--recursive] [--json]
-  file-forge image compress <files...> --width N --height N [--quality 80] [--output DIR] [--json]
-  file-forge video compress <input> --width N --height N [--quality 80] [--output DIR] [--json]
+  file-forge image compress <files...> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge folder rename <input> --renames PLAN.json [--apply] [--output DIR] [--json]
+  file-forge folder compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge video compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
@@ -44,10 +46,10 @@ Usage:
 Global options: --language en|zh-CN, --help
 Favicons: static PNG to ICO, PNG, and traced vector SVG; size 16–256 (default 64), transparent padding, no enlargement. Tracing can alter colors, edges, and partial transparency.
 Images preserve aspect ratio without enlargement. Supply at least one image process option.
-Compression requires both width and height. Images become WebP; videos become MP4 with a first-frame WebP cover. Video dimensions round down to even pixels; quality controls the cover.
-Output: a new task directory under Downloads or --output. Sources and existing outputs are preserved.
-Directory recursion is opt-in. Symlinks, animated images, SVG, and unsupported files are reported explicitly.
-Manifest export accepts existing assets without processing them, or an existing version 1 manifest.
+Compression preserves original dimensions when no size is supplied; supply width or height alone for an automatic other axis. Folder compression preserves nested structure with normalized names. Images become WebP; videos become MP4 with a first-frame WebP cover. Explicitly resized video dimensions round down to even pixels; quality controls the cover.
+Output: a new task directory under Downloads or --output. Sources and existing outputs are preserved by media workflows. Folder rename previews by default; --apply renames original directories from an explicit JSON plan.
+Folder compression always recurses; other directory operations require --recursive. Symlinks, animated images, SVG, and unsupported files are reported explicitly.
+Manifest export accepts existing assets without processing them, or an existing version 1, 2 or 3 manifest.
 Exit codes: 0 success/empty, 1 partial/failure, 2 invalid arguments/configuration, 130 interruption.
 MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition commands, specialized templates, public releases, and upgrades are not implemented.`,
     invalid: "Invalid arguments. Use --help for supported commands and options.",
@@ -83,8 +85,10 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
   file-forge favicon generate <input.png> [--size 64] [--output DIR] [--json]
   file-forge inspect <files...> [--recursive] [--json]
   file-forge image process <files...> [--width N] [--height N] [--quality N] [--format webp|jpeg|png|avif] [--output DIR] [--recursive] [--json]
-  file-forge image compress <files...> --width N --height N [--quality 80] [--output DIR] [--json]
-  file-forge video compress <input> --width N --height N [--quality 80] [--output DIR] [--json]
+  file-forge image compress <files...> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge folder rename <input> --renames PLAN.json [--apply] [--output DIR] [--json]
+  file-forge folder compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge video compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
@@ -93,10 +97,10 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
 全局选项：--language en|zh-CN、--help
 网站图标：静态 PNG 转 ICO、PNG 和描摹矢量 SVG；尺寸 16–256（默认 64），透明填充，不放大。描摹可能改变颜色、边缘和半透明效果。
 图片保持宽高比，默认不放大。image process 必须提供至少一个图片选项。
-压缩必须提供宽高。图片输出 WebP；视频输出 MP4 及同尺寸的首帧 WebP 封面。视频尺寸向下取偶数；quality 控制封面质量。
-产物保存在 Downloads 或 --output 下的新任务目录中。保留源文件和现有产物。
-目录递归需要显式开启。符号链接、动画图片、SVG 和不支持的文件会明确报告。
-清单导出可接收现有素材而不重新处理，也可接收版本 1 的现有清单。
+未指定尺寸时压缩保留原始宽高并跳过缩放；仅指定宽或高时自动保持比例。文件夹压缩保留层级并规范名称。图片输出 WebP；视频输出 MP4 及同尺寸的首帧 WebP 封面。指定缩放的视频尺寸向下取偶数；quality 控制封面质量。
+产物保存在 Downloads 或 --output 下的新任务目录中。媒体处理保留源文件和现有产物。folder rename 默认预览；--apply 按明确的 JSON 计划重命名原目录。
+文件夹压缩总是递归；其他目录操作需要 --recursive。符号链接、动画图片、SVG 和不支持的文件会明确报告。
+清单导出可接收现有素材而不重新处理，也可接收版本 1、2 或 3 的现有清单。
 退出码：0 成功或空集合，1 部分成功或失败，2 参数或配置错误，130 中断。
 MCP 使用 STDIO，需要设置 FILE_FORGE_ROOT。上传、通用合成命令、专用模板、公开发布和升级尚未实现。`,
     invalid: "参数无效。使用 --help 查看支持的命令和选项。",

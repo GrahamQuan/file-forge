@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import { Effect, Layer, Option, Path } from "effect";
+import { Effect, FileSystem, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { executeRequest, OperationError, type Manifest } from "@file-forge/core";
 import { ffmpegLayer, FaviconEngineLive, ImageEngineLive } from "@file-forge/media";
@@ -64,36 +64,69 @@ export const commands = (
         yield* emit(result);
       }),
   );
-  const compression = (video: boolean) =>
+  const compression = (kind: "image" | "video" | "folder") =>
     Command.make(
       "compress",
       {
         files,
         output,
-        width: Flag.Int("width"),
-        height: Flag.Int("height"),
+        recursive,
+        width: Flag.Int("width").pipe(Flag.optional),
+        height: Flag.Int("height").pipe(Flag.optional),
         quality: Flag.Int("quality").pipe(Flag.withDefault(80)),
       },
       (args) =>
         Effect.gen(function* () {
-          if (video && args.files.length !== 1)
+          if (kind !== "image" && args.files.length !== 1)
             return yield* new OperationError({
               code: "INVALID_INPUT",
-              detail: "Supply one video file",
+              detail: "Supply one input path",
             });
           const result = yield* executeRequest({
-            operation: video ? "video-compress" : "image-compress",
-            ...(video ? { input: args.files[0] } : { files: args.files }),
-            options: { width: args.width, height: args.height, quality: args.quality },
+            operation: `${kind}-compress`,
+            ...(kind !== "image"
+              ? { input: args.files[0] }
+              : { files: args.files, recursive: args.recursive }),
+            options: {
+              ...(Option.isSome(args.width) ? { width: args.width.value } : {}),
+              ...(Option.isSome(args.height) ? { height: args.height.value } : {}),
+              quality: args.quality,
+            },
             output: yield* outputParent(args.output),
           });
           yield* emit(result);
         }),
     );
-  const image = Command.make("image").pipe(
-    Command.withSubcommands([processCommand, compression(false)]),
+  const rename = Command.make(
+    "rename",
+    {
+      input: Argument.String("input"),
+      renames: Flag.String("renames"),
+      output,
+      apply: Flag.Boolean("apply").pipe(Flag.withDefault(false)),
+    },
+    (args) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const content = yield* fs.readFileString(args.renames);
+        const renames = yield* Effect.try({
+          try: () => JSON.parse(content) as unknown,
+          catch: () =>
+            new OperationError({ code: "INVALID_INPUT", detail: "Invalid rename plan JSON" }),
+        });
+        yield* executeRequest({
+          operation: "folder-rename",
+          input: args.input,
+          renames,
+          apply: args.apply,
+          output: yield* outputParent(args.output),
+        }).pipe(Effect.flatMap(emit));
+      }),
   );
-  const video = Command.make("video").pipe(Command.withSubcommands([compression(true)]));
+  const image = Command.make("image").pipe(
+    Command.withSubcommands([processCommand, compression("image")]),
+  );
+  const video = Command.make("video").pipe(Command.withSubcommands([compression("video")]));
   const delivery = Command.make(
     "export",
     {
@@ -146,6 +179,7 @@ export const commands = (
     Command.make("favicon").pipe(Command.withSubcommands([favicon])),
     image,
     video,
+    Command.make("folder").pipe(Command.withSubcommands([compression("folder"), rename])),
     Command.make("manifest").pipe(Command.withSubcommands([delivery])),
   ] as const;
 };

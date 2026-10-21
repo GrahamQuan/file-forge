@@ -1,0 +1,61 @@
+---
+name: file-forge
+description: Set up FileForge and its Codex plugin, check media-tool prerequisites, and use FileForge to inspect, compress, resize or convert local images, videos and folders, rename explicitly selected source folders, generate favicons, and export delivery manifests. Use for FileForge installation, upgrades, troubleshooting, and supported local media-processing requests.
+---
+
+# FileForge
+
+This skill is maintained only in the FileForge repository at `skills/file-forge`. Project installations are complete copies: a copy request creates or replaces the entire target from that source, without merging consumer edits. Update the canonical skill and affected docs whenever FileForge code changes.
+
+Use this as the entry map. Read only the references needed for the current request; do not load the whole directory.
+
+## Start here
+
+1. Identify the user's files, desired operation and output location. Reuse established choices.
+2. Read [readiness](references/readiness.md). Check the executable, dependencies, actual capabilities and plugin connection once per environment; reuse verified results until something changes.
+3. If a required tool or plugin is missing, incompatible or broken, follow **Stop and ask** below before installing, repairing, upgrading or changing execution routes. Use [runtime installation](references/runtime-installation.md) and [plugin setup](references/codex-plugin.md) to prepare a concrete solution.
+4. Select the operation below. Prefer connected FileForge tools. If the plugin needs a new chat, explain that and ask whether to reconnect or use the CLI; do not silently switch routes.
+5. Follow [execution and results](references/execution.md) through completion, including per-file failures, actual output paths and byte savings.
+
+## Stop and ask
+
+This rule governs every reference. A request to process files does not by itself authorize installing missing software or choosing a repair workaround.
+
+- First use existing context and safe, read-only checks to identify the actual blocker. Do not ask the user for information the environment already provides.
+- Pause dependent work when a required tool/plugin is missing or incompatible; installation, connection or processing fails; the selected files, operation or essential parameters are ambiguous; a naming collision occurs; or the next step would change scope or the requested result.
+- Explain **what is missing or failed**, **how it blocks this task**, and **the recommended solution**. Include the concrete package/command, path change, version choice or missing information when known. Give a relevant alternative if useful.
+- Ask one focused question or a small set of choices, and wait for the user's answer before the installation, repair, retry, fallback, scope change or dependent processing. Read-only diagnosis may continue; silence is not approval.
+- Reuse an explicit answer already given for the same action and unchanged conditions. Do not ask again for settled choices. A new failure or materially different fix needs a new question.
+- Preserve completed output on partial failure. Report it, then ask how to handle the failed items rather than rerunning the whole batch.
+- Omitted optional values are not missing essential information: no width/height means original size, and macOS output defaults to Downloads when compatible with the selected route and authorized root. Do not ask for dimensions just because they were omitted.
+
+Example: “FFmpeg is not installed, so FileForge cannot start. I recommend installing it with your existing Homebrew setup (`brew install ffmpeg`), then rerunning the check. Shall I install it, or will you provide an existing FFmpeg path?”
+
+Example: “The plugin is installed but its tools are unavailable in this chat. I recommend reconnecting in a fresh chat. Would you prefer that, or should I use the FileForge CLI for this task?”
+
+Example: “I found two folders named assets. Which should I process: the project folder or the Downloads folder?”
+
+## Operation map
+
+| User intent                                              | Read                                                           | Route                                         |
+| -------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------- |
+| Check prerequisites, version, supported features         | [Readiness](references/readiness.md)                           | CLI help/version; `file_forge_info`           |
+| Download, install, upgrade or roll back FileForge        | [Runtime installation](references/runtime-installation.md)     | Verified matching release assets              |
+| Install/enable Codex plugin; tools are missing           | [Codex plugin](references/codex-plugin.md)                     | Local marketplace and connection checks       |
+| Inspect metadata without processing                      | [Images](references/images.md)                                 | `inspect_files` / `inspect`                   |
+| Compress, resize or convert images                       | [Images](references/images.md)                                 | `compress_images` or `process_images`         |
+| Compress video; create first-frame cover                 | [Video](references/video.md)                                   | `compress_video`                              |
+| Process an entire directory into a new delivery folder   | [Folders](references/folders.md)                               | `compress_folder`                             |
+| Rename original root/subfolders as requested             | [Source-folder renaming](references/source-folder-renaming.md) | `rename_folders` / `folder rename`            |
+| Generate ICO/PNG/traced-SVG favicon set                  | [Favicons and manifests](references/favicons-manifests.md)     | `generate_favicons`                           |
+| Export/re-export manifest and report                     | [Favicons and manifests](references/favicons-manifests.md)     | `export_manifest`                             |
+| Poll/cancel jobs, compare size, explain partial failures | [Execution and results](references/execution.md)               | `job_status`, `job_cancel`; output validation |
+| Errors, old versions, unavailable workflow               | [Troubleshooting](references/troubleshooting.md)               | Diagnose before retrying                      |
+
+## Shared behavior
+
+- No width and no height means **skip resizing and retain original dimensions**. There is no 512 × 512 fallback. One supplied axis leaves the other automatic; two supplied axes are maximum bounds, not a crop or stretch request.
+- Media processing preserves sources and writes a new delivery folder, defaulting to Downloads on macOS. Explicit source-folder renaming is a separate opt-in operation: apply only the authorized directory mapping and preserve file contents. MCP writes need an explicit receipt/output parent inside the configured root.
+- Scope work to the selected files or folder. Compression naming rules apply to output copies. Change source folder names only through the explicitly requested rename workflow; do not rename source files.
+- Installed capabilities take precedence over examples here. Folder processing and no-size compression were validated in source on 2026-10-21; do not assume an older release includes them. Propose a verified compatible release or the source-build option, then ask before changing the installation.
+- This skill is a setup and workflow layer; it is not the FileForge runtime or plugin. Keep the repo skill and installed plugin separate. Do not adopt another media skill's destructive processing or implicit resize defaults.

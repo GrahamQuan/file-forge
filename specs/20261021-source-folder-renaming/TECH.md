@@ -1,0 +1,15 @@
+# Explicit source-folder renaming
+
+Implement `folder rename INPUT --renames PLAN.json [--apply] --output RECEIPT_PARENT` and MCP `rename_folders` / `folder-rename`. The plan is a nonempty array of `{path, name}`: path is relative to the original selected root, `.` selects that root, and name is a single desired directory name. Exact custom names are allowed; the agent may derive normalized names only when the user requests normalization. No files are renamed or recompressed. Existing copy-based compression remains unchanged.
+
+Preview is the default and writes a receipt without renaming source directories. Apply requires the explicit boolean/flag. Validate the whole plan first: reject traversal, symlink paths, non-directories, duplicate selections, empty/invalid names, existing destinations, and destination collisions. Support case-only changes where the filesystem resolves the destination to the same source. Apply deepest directories first and root last. Recheck paths at mutation time; reserve absent destinations exclusively before rename so an existing directory is never merged or replaced. External concurrent modification of the selected tree is unsupported.
+
+Write schema-v3 receipts with apply flag, original/final/current paths and per-directory planned/succeeded/failed states. Persist the plan before changing sources and progress after each change. On failure stop subsequent renames, retain completed work and receipt; do not attempt broad rollback. Cancellation records current locations after completing an active rename. Receipt parent must remain outside the source tree and any renamed root destination. Keep v1/v2 manifest reading/export working.
+
+MCP validates source and destination paths within its configured root; renaming that configured root itself is rejected. It remains possible to rename an explicitly selected child root inside the configured workspace. Check destinations again in the worker scope.
+
+Update both source plugin instructions and ProductDesignSkills skill: distinguish source renaming from normalized delivery copies, require explicit user naming scope, show exact mapping, ask if unclear or blocked, and never infer permission to modify media bytes. Verify real CLI/MCP preview/apply, root/subfolder combinations, source-byte preservation, collisions, traversal, symlinks, case-only changes and scope rejection. Run pnpm check and pnpm test:e2e. No release or installation in this task.
+
+## Validation evidence
+
+Implemented locally. `pnpm check` passed lint, formatting, typechecking and build. `pnpm test:e2e` passed 16 real non-UI tests across 11 files. New CLI/MCP flows verified preview/apply, combined root and nested renames, unchanged file bytes, case-only renames, destination collisions, duplicate selections, traversal/symlink rejection, receipt placement, schema-v3 export and configured-root protection. The ProductDesignSkills skill passed the official skill validator plus local-link and JSON-example checks. No user's source directory was renamed; tests used isolated temporary fixtures. Installation and release remain pending.

@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import sharp from "sharp";
 
 // Real CLI → shared core → Sharp/FFmpeg → decoded output files. No UI.
-test("compression requires dimensions and produces resized WebP and video-matched covers", async () => {
+test("compression accepts optional dimensions and produces resized WebP and video-matched covers", async () => {
   const root = await mkdtemp(join(tmpdir(), "file-forge-compression-"));
   const cli = (...args) =>
     spawnSync(process.execPath, [resolve("packages/cli/bin/file-forge.js"), ...args, "--json"], {
@@ -27,11 +27,14 @@ test("compression requires dimensions and produces resized WebP and video-matche
   };
   try {
     const input = join(root, "source.png");
-    await sharp({ create: { width: 320, height: 240, channels: 3, background: "red" } })
+    await sharp({ create: { width: 800, height: 600, channels: 3, background: "red" } })
       .png()
       .toFile(input);
     const original = await readFile(input);
-    for (const dimensions of [[], ["--width", "160"], ["--height", "120"]]) {
+    for (const dimensions of [
+      ["--width", "0"],
+      ["--height", "-1"],
+    ]) {
       const result = cli(
         "image",
         "compress",
@@ -66,16 +69,15 @@ test("compression requires dimensions and produces resized WebP and video-matche
       "-f",
       "lavfi",
       "-i",
-      "testsrc2=size=320x240:rate=10:duration=0.5",
+      "testsrc2=size=800x600:rate=10:duration=0.5",
       "-c:v",
       "libx264",
       video,
     );
     const sourceBytes = await readFile(video);
     for (const dimensions of [
-      [],
-      ["--width", "160"],
-      ["--height", "120"],
+      ["--width", "0"],
+      ["--height", "-1"],
       ["--width", "1", "--height", "1"],
     ]) {
       assert.equal(cli("video", "compress", video, ...dimensions, "--output", root).status, 2);
@@ -108,9 +110,30 @@ test("compression requires dimensions and produces resized WebP and video-matche
       assert.equal(coverMeta.height, frameMeta.height);
       assert.equal(frameMeta.width % 2, 0);
       assert.equal(frameMeta.height % 2, 0);
-      assert.ok(frameMeta.width <= Math.min(width, 320));
-      assert.ok(frameMeta.height <= Math.min(height, 240));
+      assert.ok(frameMeta.width <= Math.min(width, 800));
+      assert.ok(frameMeta.height <= Math.min(height, 600));
       assert.equal((await readFile(join(manifest.directory, "manifest.json"))).length > 0, true);
+    }
+    for (const [dimensions, expected] of [
+      [[], [800, 600]],
+      [
+        ["--width", "160"],
+        [160, 120],
+      ],
+      [
+        ["--height", "120"],
+        [160, 120],
+      ],
+    ]) {
+      for (const [kind, source] of [
+        ["image", input],
+        ["video", video],
+      ]) {
+        const result = cli(kind, "compress", source, ...dimensions, "--output", root);
+        assert.equal(result.status, 0, result.stderr);
+        const asset = JSON.parse(result.stdout).assets[0];
+        assert.deepEqual([asset.outputWidth, asset.outputHeight], expected);
+      }
     }
     assert.deepEqual(await readFile(video), sourceBytes);
   } finally {
