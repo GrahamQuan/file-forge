@@ -78,9 +78,15 @@ export const commands = (
         quality: Flag.Int("quality").pipe(Flag.optional),
         preset: Flag.String("preset").pipe(Flag.optional),
         media: Flag.String("media").pipe(Flag.optional),
+        audio: Flag.String("audio").pipe(Flag.optional),
       },
       (args) =>
         Effect.gen(function* () {
+          if (kind === "image" && Option.isSome(args.audio))
+            return yield* new OperationError({
+              code: "INVALID_INPUT",
+              detail: "Audio selection applies to videos and folders",
+            });
           if (kind !== "folder" && Option.isSome(args.media))
             return yield* new OperationError({
               code: "INVALID_INPUT",
@@ -102,6 +108,7 @@ export const commands = (
               ...(Option.isSome(args.height) ? { height: args.height.value } : {}),
               ...(Option.isSome(args.quality) ? { quality: args.quality.value } : {}),
               ...(Option.isSome(args.preset) ? { preset: args.preset.value } : {}),
+              ...(Option.isSome(args.audio) ? { audio: args.audio.value } : {}),
             },
             output: yield* outputParent(args.output),
           });

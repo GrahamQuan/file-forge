@@ -58,6 +58,8 @@ For audio/music compression, read [audio and music](references/audio.md) and use
 
 ## Shared behavior
 
+- Keep video audio by default; use `--audio remove` only when requested. Remember explicit audio choices only within this chat; see the video reference.
+
 - Support one selected file, a whole folder, or only folder images/videos (see folders reference). Remember explicit processing preferences only in this chat; explicit new choices win, new chats reset, and no global configuration is written. Input paths are task-specific.
 
 - When the user opts into clearer compressed images/videos, use the `clarity` preset described in the image/video/folder references. Keep standard compression as the default; disclose that clarity is still lossy and can be slower or larger.

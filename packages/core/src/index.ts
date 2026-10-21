@@ -603,6 +603,7 @@ export const compressVideoFile = (
           ...Object.fromEntries(
             Object.entries(validated).filter(([, value]) => value !== undefined),
           ),
+          audio: validated.audio ?? "keep",
           coverQuality: imageQuality(validated),
           ...videoEncoding(validated),
         },

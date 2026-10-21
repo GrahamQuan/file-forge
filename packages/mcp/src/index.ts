@@ -62,7 +62,7 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("compress_video", {
     description:
-      "Optional preset clarity uses CRF 18/slow and cover quality 90; standard uses CRF 23/medium. Resize and compress one video to MP4 and create a first-frame WebP cover matching the resulting video dimensions. Omitted axes preserve aspect ratio; no size skips resizing and preserves original dimensions. Poll job_status.",
+      "Optional preset clarity uses CRF 18/slow and cover quality 90; standard uses CRF 23/medium. options.audio defaults to keep (first audio track encoded to AAC); remove omits all audio. Resize and compress one video to MP4 and create a first-frame WebP cover matching the resulting video dimensions. Omitted axes preserve aspect ratio; no size skips resizing and preserves original dimensions. Poll job_status.",
     parameters: submission(VideoCompressionRequest.fields),
     success,
     failure,
@@ -90,7 +90,7 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("compress_folder", {
     description:
-      "Recursively compress a folder into a new normalized hierarchy. media selects all (default), images or videos; excluded regular files retain their bytes and format. Optional preset clarity applies to images/videos and video covers. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional width/height limits preserve image/video ratio; no size preserves original dimensions. Every processed GLB also generates six default 16:9 quality-80 WebP posters using local Chrome; failed posters retain the model with partial status. Poll job_status.",
+      "Recursively compress a folder into a new normalized hierarchy. media selects all (default), images or videos; excluded regular files retain their bytes and format. Optional preset clarity applies to images/videos and video covers. options.audio remove strips audio from selected videos only; keep is default. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional width/height limits preserve image/video ratio; no size preserves original dimensions. Every processed GLB also generates six default 16:9 quality-80 WebP posters using local Chrome; failed posters retain the model with partial status. Poll job_status.",
     parameters: submission(FolderCompressionRequest.fields),
     success,
     failure,

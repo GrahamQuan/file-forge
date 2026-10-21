@@ -16,7 +16,7 @@ file-forge folder compress ./assets --preset clarity --json
 | H.264 CRF                     | 23                 | 18      |
 | H.264 encoder preset          | medium             | slow    |
 
-Explicit `--quality` overrides image/cover quality in either preset; it does not set video CRF. The preset applies to images and videos inside folders. Existing image conversion formats remain available; extra WebP effort/subsampling apply only to WebP. Audio encoding remains AAC 128 kb/s for video. No sharpening, upscaling, frame-rate change or new resize fallback is introduced. Omitted dimensions retain the existing image/video size. Explicitly reducing dimensions can still remove detail.
+Explicit `--quality` overrides image/cover quality in either preset; it does not set video CRF. The preset applies to images and videos inside folders. Existing image conversion formats remain available; extra WebP effort/subsampling apply only to WebP. With the default audio=keep, video audio encoding remains AAC 128 kb/s; audio=remove omits audio. No sharpening, upscaling, frame-rate change or new resize fallback is introduced. Omitted dimensions retain the existing image/video size. Explicitly reducing dimensions can still remove detail.
 
 This is a fixed lossy preset, not a measured quality guarantee or search for the smallest file. It cannot recover detail missing from the source. Clarity normally takes longer and can produce larger files; report actual sizes even when compression increases size. PNG behavior remains governed by its encoder, not a perceptual score.
 

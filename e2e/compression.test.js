@@ -70,11 +70,63 @@ test("compression accepts optional dimensions and produces resized WebP and vide
       "lavfi",
       "-i",
       "testsrc2=size=800x600:rate=10:duration=0.5",
+      "-f",
+      "lavfi",
+      "-i",
+      "sine=frequency=440:duration=0.5",
+      "-c:a",
+      "aac",
       "-c:v",
       "libx264",
       video,
     );
     const sourceBytes = await readFile(video);
+    const audioStreams = (path) => {
+      const probe = spawnSync(
+        process.env.FFPROBE_PATH || "ffprobe",
+        [
+          "-v",
+          "error",
+          "-select_streams",
+          "a",
+          "-show_entries",
+          "stream=codec_name",
+          "-of",
+          "json",
+          path,
+        ],
+        { encoding: "utf8", timeout: 30000 },
+      );
+      assert.equal(probe.status, 0, probe.stderr);
+      return JSON.parse(probe.stdout).streams;
+    };
+    assert.equal(audioStreams(video).length, 1);
+    const silent = join(root, "silent.mp4");
+    ffmpeg("-n", "-i", video, "-c:v", "copy", "-an", silent);
+    for (const audio of ["keep", "remove"]) {
+      const result = cli("video", "compress", silent, "--audio", audio, "--output", root);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(audioStreams(JSON.parse(result.stdout).assets[0].output).length, 0);
+    }
+
+    for (const audio of [undefined, "keep", "remove"]) {
+      const result = cli(
+        "video",
+        "compress",
+        video,
+        ...(audio ? ["--audio", audio] : []),
+        "--output",
+        root,
+      );
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      const m = JSON.parse(result.stdout);
+      assert.equal(m.parameters.video.audio, audio ?? "keep");
+      assert.equal(audioStreams(m.assets[0].output).length, audio === "remove" ? 0 : 1);
+      assert.equal((await sharp(m.assets[1].output).metadata()).width, 800);
+    }
+    assert.equal(cli("video", "compress", video, "--audio", "invalid", "--output", root).status, 2);
+    assert.equal(cli("image", "compress", input, "--audio", "remove", "--output", root).status, 2);
+
     for (const kind of ["image", "video"]) {
       const source = kind === "image" ? input : video;
       const result = cli(kind, "compress", source, "--preset", "clarity", "--output", root);
@@ -122,6 +174,39 @@ test("compression accepts optional dimensions and produces resized WebP and vide
     assert.equal(folderManifest.parameters.image.quality, 90);
     assert.equal(folderManifest.parameters.video.crf, 18);
     assert.equal(folderManifest.assets.length, 3);
+    const mutedFolder = cli(
+      "folder",
+      "compress",
+      mixed,
+      "--media",
+      "videos",
+      "--audio",
+      "remove",
+      "--output",
+      root,
+    );
+    assert.equal(mutedFolder.status, 0, mutedFolder.stdout + mutedFolder.stderr);
+    const muted = JSON.parse(mutedFolder.stdout);
+    assert.equal(muted.parameters.video.audio, "remove");
+    assert.equal(audioStreams(muted.assets.find((a) => a.kind === "video").output).length, 0);
+    assert.deepEqual(
+      await readFile(muted.assets.find((a) => a.originalName === "image.png").output),
+      original,
+    );
+    const excludedFolder = cli(
+      "folder",
+      "compress",
+      mixed,
+      "--media",
+      "images",
+      "--audio",
+      "remove",
+      "--output",
+      root,
+    );
+    assert.equal(excludedFolder.status, 0, excludedFolder.stdout + excludedFolder.stderr);
+    const excludedVideo = JSON.parse(excludedFolder.stdout).assets.find((a) => a.kind === "video");
+    assert.deepEqual(await readFile(excludedVideo.output), sourceBytes);
 
     for (const dimensions of [
       ["--width", "0"],

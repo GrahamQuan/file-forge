@@ -235,6 +235,7 @@ export {
 
 // A missing axis is automatic; omitting both axes leaves the original size unchanged.
 export const CompressionOptionsSchema = Schema.Struct({
+  audio: Schema.optional(Schema.Literals(["keep", "remove"])),
   preset: Schema.optional(CompressionPresetSchema),
   width: Schema.optional(dimension),
   height: Schema.optional(dimension),
@@ -279,8 +280,7 @@ export const compressVideo = (input: string, directory: string, options: Compres
         source,
         "-map",
         "0:v:0",
-        "-map",
-        "0:a:0?",
+        ...(validated.audio === "remove" ? [] : ["-map", "0:a:0?"]),
         ...(validated.width !== undefined || validated.height !== undefined ? ["-vf", scale] : []),
         "-c:v",
         "libx264",
@@ -290,10 +290,7 @@ export const compressVideo = (input: string, directory: string, options: Compres
         encoding.encoderPreset,
         "-pix_fmt",
         "yuv420p",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "128k",
+        ...(validated.audio === "remove" ? ["-an"] : ["-c:a", "aac", "-b:a", "128k"]),
         "-movflags",
         "+faststart",
         temporary,

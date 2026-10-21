@@ -110,6 +110,13 @@ export const validateRequest = (input: unknown) =>
       () => new OperationError({ code: "INVALID_INPUT", detail: "Invalid operation request" }),
     ),
     Effect.tap((request) => {
+      if (request.operation === "image-compress" && request.options.audio !== undefined)
+        return Effect.fail(
+          new OperationError({
+            code: "INVALID_INPUT",
+            detail: "Audio selection applies to videos and folders",
+          }),
+        );
       if (
         request.operation === "image" &&
         !Object.values(request.options).some((value) => value !== undefined)

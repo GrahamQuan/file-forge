@@ -176,3 +176,5 @@ Each 3D poster is rendered to a temporary PNG and automatically processed throug
 Opt in to `--preset clarity` for higher image/video detail retention with compression. Defaults are unchanged; see [clarity preset](clarity-preset.md) for settings, overrides and tradeoffs.
 
 Folder processing supports `--media all|images|videos`; non-selected files are copied unchanged. See [media selection and chat preferences](media-selection.md).
+
+Video audio defaults to keep; opt in to `--audio remove` for videos or selected videos in folders. See [video audio controls](video-audio.md).

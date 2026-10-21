@@ -80,3 +80,5 @@
 - Keep clarity compression opt-in via shared CLI/MCP preset validation. Standard stays image quality 80 / H.264 CRF 23 medium; clarity uses quality 90 / WebP effort 6 + smart subsampling / CRF 18 slow. Explicit quality overrides images/covers only. Preserve sizing behavior and record effective settings; do not claim measured quality guarantees or optimal file size.
 
 - Folder media selection supports all/images/videos; copy excluded regular files unchanged while retaining naming and collision rules. Only selected GLBs generate posters. Chat preferences are agent context, never persisted configuration; explicit request values override earlier compatible preferences, and new chats reset.
+
+- Video audio defaults to keep (first available audio stream encoded to AAC 128 kb/s). Remove only with explicit audio=remove; apply only to selected videos, support silent input, and record the policy. Chat audio preferences reset in new chats; do not persist globally.

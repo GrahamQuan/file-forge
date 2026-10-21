@@ -36,11 +36,11 @@ Usage:
   file-forge image process <files...> [--width N] [--height N] [--quality N] [--format webp|jpeg|png|avif] [--output DIR] [--recursive] [--json]
   file-forge image compress <files...> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge folder rename <input> --renames PLAN.json [--apply] [--output DIR] [--json]
-  file-forge folder compress <input> [--media all|images|videos] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge folder compress <input> [--audio keep|remove] [--media all|images|videos] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge audio compress <input> [--output DIR] [--json]
   file-forge model compress <input.glb> [--output DIR] [--json]
   file-forge model posters <input.glb> [--ratio W:H] [--width N] [--height N] [--output DIR] [--json]
-  file-forge video compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge video compress <input> [--audio keep|remove] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
@@ -53,6 +53,7 @@ Compression preserves original dimensions when no size is supplied; supply width
 Output: a new task directory under Downloads or --output. Sources and existing outputs are preserved by media workflows. Folder rename previews by default; --apply renames original directories from an explicit JSON plan.
 Folder --media selects all (default), images or videos; non-selected files are copied unchanged. Folder compression always recurses; other directory operations require --recursive. Symlinks, animated images, SVG, and unsupported files are reported explicitly.
 Audio/music: strictly lossless; eligible PCM/FLAC becomes smaller verified FLAC, otherwise original bytes are retained. Requires FFprobe (FFPROBE_PATH supported). Models: self-contained GLB 2.0 JSON compaction only; binary data stays unchanged. Folder processing includes both.
+Video audio: --audio keep (default) encodes the first audio track to AAC 128k; --audio remove omits all audio. Folder mode affects selected videos only.
 Compression preset: --preset clarity uses image/cover quality 90 and video CRF 18/slow; default standard remains quality 80 and CRF 23/medium. Explicit --quality overrides images/covers only. Clarity is lossy and may be slower/larger.
 3D posters: six axis views processed through the shared image workflow as quality-80 lossy WebP without additional resizing, transparent canvas, default 16:9 at 1024x576; --ratio W:H selects another ratio, one dimension derives the other, both set the canvas (16–4096; explicit ratio conflicts fail). Requires Chrome/Chromium; FILE_FORGE_CHROME_PATH selects an absolute executable. Model/folder compression automatically generates six posters per GLB.
 Manifest export accepts existing assets without processing them, or an existing version 1, 2, 3, 4 or 5 manifest.
@@ -93,11 +94,11 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
   file-forge image process <files...> [--width N] [--height N] [--quality N] [--format webp|jpeg|png|avif] [--output DIR] [--recursive] [--json]
   file-forge image compress <files...> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge folder rename <input> --renames PLAN.json [--apply] [--output DIR] [--json]
-  file-forge folder compress <input> [--media all|images|videos] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge folder compress <input> [--audio keep|remove] [--media all|images|videos] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge audio compress <input> [--output DIR] [--json]
   file-forge model compress <input.glb> [--output DIR] [--json]
   file-forge model posters <input.glb> [--ratio W:H] [--width N] [--height N] [--output DIR] [--json]
-  file-forge video compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge video compress <input> [--audio keep|remove] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
@@ -110,6 +111,7 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
 产物保存在 Downloads 或 --output 下的新任务目录中。媒体处理保留源文件和现有产物。folder rename 默认预览；--apply 按明确的 JSON 计划重命名原目录。
 文件夹 --media 可选择 all（默认）、images 或 videos；未选中的文件保持原字节复制。文件夹压缩总是递归；其他目录操作需要 --recursive。符号链接、动画图片、SVG 和不支持的文件会明确报告。
 音频/音乐：严格无损；符合条件的 PCM/FLAC 仅在样本验证通过且更小时转为 FLAC，否则保留原字节。需要 FFprobe（支持 FFPROBE_PATH）。模型：仅压缩自包含 GLB 2.0 的 JSON 空白，二进制数据不变。文件夹处理包含这两类素材。
+视频音轨：--audio keep（默认）将首条音轨编码为 AAC 128k；--audio remove 移除全部音轨。文件夹模式仅影响选中的视频。
 压缩预设：--preset clarity 使用图片/封面质量 90 和视频 CRF 18/slow；默认 standard 保持质量 80 和 CRF 23/medium。明确的 --quality 仅覆盖图片/封面质量。仍为有损，可能更慢、文件更大。
 3D 海报：六个轴向视图自动经过共享图片流程，不额外缩放，输出质量 80 的有损 WebP、透明画布，默认 16:9（1024×576）；--ratio W:H 可选其他比例，一个尺寸按比例推算另一边，两个尺寸确定画布（16–4096；与明确比例冲突时拒绝处理）。需要 Chrome/Chromium；FILE_FORGE_CHROME_PATH 可指定可执行文件的绝对路径。模型或文件夹压缩会为每个 GLB 自动生成六张默认海报。
 清单导出可接收现有素材而不重新处理，也可接收版本 1、2、3、4 或 5 的现有清单。
