@@ -67,6 +67,10 @@ jobs:
         run: |
           pnpm build
           node packages/cli/dist/release-version.js "$RELEASE_VERSION"
+      - name: Prepare offline deployment cache
+        run: |
+          pnpm --filter @file-forge/cli deploy --legacy --prod "$RUNNER_TEMP/file-forge-deploy-cache"
+          rm -rf "$RUNNER_TEMP/file-forge-deploy-cache"
       - name: Validate source and release build
         run: |
           pnpm check
