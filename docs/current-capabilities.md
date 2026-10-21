@@ -32,3 +32,5 @@ Manifest versions: v1 inspection/image/video/export, v2 folder delivery, v3 sour
 Implemented: local macOS arm64 archives and managed installation/rollback, plugin ZIP packaging, checksums, and gated GitHub Actions patch releases on `main`. Runtime and plugin are separately installed; Node/FFmpeg remain external prerequisites. Verify actual published assets rather than treating local checks as remote-release evidence.
 
 Not implemented as FileForge CLI/MCP features: S3 uploads, durable job storage, automatic `--upgrade`, general audio/composition or arbitrary FFmpeg filters, GLB optimization, and built-in HyperFrames rendering. HyperFrames can be orchestrated externally for an explicitly requested motion workflow. Proposed workflow scripts in older specs are not available unless listed in the actual package scripts/help.
+
+Video covers use the same basename as their MP4: standalone `video.mp4` / `video.webp`, or the normalized source basename in folder deliveries. Cover/image path collisions fail folder preflight before output creation.

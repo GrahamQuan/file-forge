@@ -32,12 +32,12 @@ file-forge-<task-id>/
     some-route/
       some-example.webp
       clip.mp4
-      clip-cover.webp
+      clip.webp
 ```
 
 Each source folder segment and file stem becomes lowercase ASCII letters, digits and hyphens. Runs of other characters become one hyphen; leading/trailing hyphens are trimmed. The last filename extension is separate. Thus `Example.COM/Some_Route/some example.PNG` becomes `example-com/some-route/some-example.webp`. Do not reuse another skill's naming algorithm.
 
-Static supported images become WebP; mp4/mov/m4v/webm/mkv/avi become MP4 with sibling `-cover.webp`. Other regular files are copied byte-for-byte to normalized output names. Skip `.DS_Store`, symlinks, non-regular files and animated images, reporting reasons. Empty directories are preserved. Copied HTML/JSON/CSS references are not rewritten to match renamed assets; flag that limitation when a working site/package is expected.
+Static supported images become WebP; mp4/mov/m4v/webm/mkv/avi become MP4 with same-basename sibling WebP cover (for example, `clip.mp4` and `clip.webp`). Other regular files are copied byte-for-byte to normalized output names. Skip `.DS_Store`, symlinks, non-regular files and animated images, reporting reasons. Empty directories are preserved. Copied HTML/JSON/CSS references are not rewritten to match renamed assets; flag that limitation when a working site/package is expected.
 
 Choose output outside the input tree, including resolved symlink ancestors. Preflight rejects empty normalized stems and destination collisions, including generated covers or different image formats collapsing to one WebP. Do not overwrite, append invented suffixes, or rename source files to bypass a collision. Show the conflicting names and ask for the necessary naming decision.
 

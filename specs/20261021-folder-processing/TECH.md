@@ -10,7 +10,7 @@ Normalize each path component to lowercase ASCII letters, digits and hyphens; co
 
 Without explicit dimensions, videos incompatible with the current H.264/yuv420p encoder (such as odd pixel dimensions) fail rather than silently resize. Existing orientation handling remains in place.
 
-Static supported images become WebP (quality 80 by default). Supported video extensions mp4, mov, m4v, webm, mkv and avi become H.264 MP4 (CRF 23, optional AAC audio) with sibling `-cover.webp`. Copy other regular files unchanged in content. Skip .DS_Store, symlinks, non-regular files and animated images, recording the reason. Preserve empty directories. Do not rewrite references inside copied documents.
+Static supported images become WebP (quality 80 by default). Supported video extensions mp4, mov, m4v, webm, mkv and avi become H.264 MP4 (CRF 23, optional AAC audio) with same-basename sibling WebP cover (for example, `clip.mp4` and `clip.webp`). Copy other regular files unchanged in content. Skip .DS_Store, symlinks, non-regular files and animated images, recording the reason. Preserve empty directories. Do not rewrite references inside copied documents.
 
 Process serially with scoped staging. Per-file media errors produce failed entries and allow remaining files to proceed. Cancellation retains completed output and writes a cancelled manifest. Folder manifests use schema version 2; version 1 remains readable. Include source/output mappings, dimensions and byte sizes. Reports live outside the normalized asset root. Skips alone do not make a successful delivery fail; a delivery with no produced files is empty.
 

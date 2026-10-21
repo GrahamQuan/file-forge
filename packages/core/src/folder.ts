@@ -102,7 +102,7 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
             if (!stem) return yield* invalid("File name has no ASCII letters or digits");
             const output = path.join(target, stem + (outputExtension ? `.${outputExtension}` : ""));
             yield* reserve(output);
-            const cover = kind === "video" ? path.join(target, `${stem}-cover.webp`) : undefined;
+            const cover = kind === "video" ? path.join(target, `${stem}.webp`) : undefined;
             if (cover) yield* reserve(cover);
             planned.push({
               asset: { ...asset, kind, size: Number(info.size) },

@@ -262,7 +262,7 @@ export const compressVideo = (input: string, directory: string, options: Compres
         format: "webp",
       });
       const output = path.join(directory, "video.mp4");
-      const coverOutput = path.join(directory, "cover.webp");
+      const coverOutput = path.join(directory, "video.webp");
       yield* fs.link(temporary, output);
       yield* fs.link(cover, coverOutput);
       return {

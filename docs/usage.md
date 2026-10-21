@@ -67,7 +67,7 @@ file-forge video compress INPUT.mp4 --width 300 --json
 file-forge folder compress INPUT_DIRECTORY --width 300 --json
 ```
 
-With no dimensions supplied, compression skips resizing and retains the original dimensions. Both dimensions specify a bounding box; outputs never enlarge. Folder processing recursively preserves hierarchy inside a new delivery directory. Names use lowercase ASCII letters, digits and hyphens, with extensions separate. Non-media files are copied unchanged, `.DS_Store`, symlinks and animated images are skipped, and naming collisions fail before output creation. Each MP4 receives a sibling `-cover.webp`. The manifest records failures and skips. These folder and optional-size features require the current source build until the next release.
+With no dimensions supplied, compression skips resizing and retains the original dimensions. Both dimensions specify a bounding box; outputs never enlarge. Folder processing recursively preserves hierarchy inside a new delivery directory. Names use lowercase ASCII letters, digits and hyphens, with extensions separate. Non-media files are copied unchanged, `.DS_Store`, symlinks and animated images are skipped, and naming collisions fail before output creation. Each MP4 receives a same-basename sibling WebP cover (for example, `clip.mp4` and `clip.webp`). The manifest records failures and skips. These folder and optional-size features require the current source build until the next release.
 
 ## Generate favicons
 

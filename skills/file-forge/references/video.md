@@ -26,3 +26,5 @@ Return both video and cover. Validate actual encoded dimensions and byte sizes; 
 ## HyperFrames and other motion work
 
 HyperFrames is an external authoring/rendering workflow, not a built-in FileForge command. Do not install it for ordinary compression. If the user requests animated text/composition, inspect an available local HyperFrames project and its actual CLI documentation. Resolve content/timing from user instructions. Render externally when authorized, then pass the resulting video to FileForge and label each step accurately. Do not invent `file-forge hyperframes` or other unimplemented commands.
+
+Video covers share the output video basename, with `.webp` instead of `.mp4` and no `-cover` suffix. Standalone compression produces `video.mp4` and `video.webp`; folder compression uses the normalized source basename. If another input would produce the same cover path, folder preflight rejects the collision without overwriting files.

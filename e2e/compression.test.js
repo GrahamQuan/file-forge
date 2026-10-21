@@ -101,6 +101,7 @@ test("compression accepts optional dimensions and produces resized WebP and vide
       const manifest = JSON.parse(result.stdout);
       assert.equal(manifest.status, "succeeded");
       const [encoded, cover] = manifest.assets;
+      assert.equal(cover.output, encoded.output.replace(/\.mp4$/, ".webp"));
       const frame = join(manifest.directory, "verify.png");
       ffmpeg("-n", "-i", encoded.output, "-frames:v", "1", frame);
       const frameMeta = await sharp(frame).metadata();

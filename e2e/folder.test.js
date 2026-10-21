@@ -73,7 +73,7 @@ test("folder CLI preserves sources, normalizes hierarchy, handles partial failur
         "unchanged bytes",
       );
       assert.equal(manifest.assets.filter((a) => a.status === "skipped").length, 2);
-      const cover = await sharp(join(output, "my-clip-cover.webp")).metadata();
+      const cover = await sharp(join(output, "my-clip.webp")).metadata();
       const encoded = manifest.assets.find((a) => a.kind === "video");
       assert.deepEqual([cover.width, cover.height], [encoded.outputWidth, encoded.outputHeight]);
       if (!args.length) assert.deepEqual([encoded.outputWidth, encoded.outputHeight], [800, 600]);
@@ -102,6 +102,19 @@ test("folder CLI preserves sources, normalizes hierarchy, handles partial failur
       cli("folder", "compress", input, "--output", join(root, "alias", "out")).status,
       2,
     );
+    const conflictingImage = join(nested, "My Clip.png");
+    await writeFile(conflictingImage, original);
+    const coverCollision = cli(
+      "folder",
+      "compress",
+      input,
+      "--output",
+      join(root, "cover-collision"),
+    );
+    assert.equal(coverCollision.status, 2, coverCollision.stderr);
+    assert.equal((await readdir(root)).includes("cover-collision"), false);
+    assert.deepEqual(await readFile(conflictingImage), original);
+    await rm(conflictingImage);
     await writeFile(join(input, "Broken.png"), "invalid image");
     const partial = cli("folder", "compress", input, "--output", join(root, "partial"));
     assert.equal(JSON.parse(partial.stdout).status, "partial");
