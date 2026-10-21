@@ -145,6 +145,20 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
     assert.equal(favicon.assets.length, 3);
     assert.equal((await sharp(join(favicon.directory, "favicon.svg")).metadata()).width, 64);
     assert.equal((await readFile(join(favicon.directory, "favicon.ico"))).readUInt16LE(2), 1);
+    const { makePosterGlb } = await import("./poster-fixture.js");
+    const model = join(root, "box.glb");
+    await writeFile(model, makePosterGlb());
+    const posters = successful(
+      await run(
+        executable,
+        ["model", "posters", model, "--width", "64", "--output", join(root, "posters"), "--json"],
+        env,
+        root,
+      ),
+    );
+    assert.equal(posters.assets.length, 6);
+    assert.equal(posters.schemaVersion, 5);
+    assert.ok(posters.assets.every((asset) => asset.status === "succeeded" && asset.lossless));
     // Start the installed runtime with an authorized root. PID and STDIO are owned by this test.
     server = spawn(executable, ["mcp"], {
       cwd: root,

@@ -46,6 +46,15 @@ export const AssetSchema = Schema.Struct({
   sampleRate: Schema.optional(Schema.Number),
   channels: Schema.optional(Schema.Number),
   bitsPerSample: Schema.optional(Schema.Number),
+  view: Schema.optional(Schema.Literals(["front", "back", "left", "right", "top", "bottom"])),
+  camera: Schema.optional(
+    Schema.Struct({
+      position: Schema.Array(Schema.Number),
+      target: Schema.Array(Schema.Number),
+      up: Schema.Array(Schema.Number),
+      orthographicScale: Schema.Number,
+    }),
+  ),
   errorCode: Schema.optional(Schema.String),
 });
 export type Asset = typeof AssetSchema.Type;
@@ -57,6 +66,9 @@ const LegacyManifestSchema = Schema.Struct({
   status: Schema.Literals(["succeeded", "partial", "failed", "empty", "cancelled"]),
   parameters: Schema.Struct({
     recursive: Schema.Boolean,
+    poster: Schema.optional(
+      Schema.Record(Schema.String, Schema.Union([Schema.String, Schema.Number])),
+    ),
     video: Schema.optional(
       Schema.Record(Schema.String, Schema.Union([Schema.String, Schema.Number])),
     ),
@@ -75,6 +87,11 @@ export const FolderRenameEntrySchema = Schema.Struct({
 });
 export const ManifestSchema = Schema.Union([
   LegacyManifestSchema,
+  Schema.Struct({
+    ...LegacyManifestSchema.fields,
+    schemaVersion: Schema.Literal(5),
+    operation: Schema.Literal("model-posters"),
+  }),
   Schema.Struct({
     ...LegacyManifestSchema.fields,
     schemaVersion: Schema.Literal(4),
@@ -518,6 +535,7 @@ export {
   VideoCompressionRequest,
   AudioCompressionRequest,
   ModelCompressionRequest,
+  ModelPostersRequest,
   FolderCompressionRequest,
   FolderRenameRequest,
   FaviconRequest,
@@ -626,3 +644,5 @@ export const compressVideoFile = (
   });
 
 export { compressLosslessFile } from "./lossless.js";
+
+export { generateModelPosters } from "./posters.js";

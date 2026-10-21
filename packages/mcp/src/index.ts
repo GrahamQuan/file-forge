@@ -19,6 +19,7 @@ import {
   ImageCompressionRequest,
   AudioCompressionRequest,
   ModelCompressionRequest,
+  ModelPostersRequest,
   VideoCompressionRequest,
   FolderCompressionRequest,
   FolderRenameRequest,
@@ -70,6 +71,13 @@ const tools = Toolkit.make(
     description:
       "Losslessly optimize one audio file. Eligible integer PCM/FLAC becomes smaller sample-verified FLAC; otherwise retain original bytes. No lossy encoding. Poll job_status.",
     parameters: submission(AudioCompressionRequest.fields),
+    success,
+    failure,
+  }).annotate(Tool.Strict, true),
+  Tool.make("generate_model_posters", {
+    description:
+      "Render six GLB views (front/back/left/right/top/bottom) as lossless WebP. Transparent 1024-square canvas by default; one axis makes a square, both define the canvas. Model axes define orientation. Requires local Chrome; preserves sources. Poll job_status.",
+    parameters: submission(ModelPostersRequest.fields),
     success,
     failure,
   }).annotate(Tool.Strict, true),
@@ -189,7 +197,8 @@ const handlers = (root: string) =>
                         stdout: "pipe",
                         stderr: "pipe",
                         killSignal: "SIGINT",
-                        forceKillAfter: "30 seconds",
+                        // Allow a bounded 30s browser acquisition plus owned-process finalization.
+                        forceKillAfter: "60 seconds",
                       },
                     ),
                   );
@@ -259,6 +268,7 @@ const handlers = (root: string) =>
         compress_folder: submit,
         compress_audio: submit,
         compress_model: submit,
+        generate_model_posters: submit,
         rename_folders: submit,
         generate_favicons: submit,
         export_manifest: submit,

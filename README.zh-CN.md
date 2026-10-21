@@ -4,7 +4,7 @@
 
 面向用户、脚本和编码智能体的本地媒体处理工具，基于 Sharp 和 FFmpeg，提供 CLI 和本地 MCP 工具。
 
-**源码能力：**已实现图片、视频和文件夹压缩、音频/音乐无损优化及 GLB JSON 压缩、图片转换、网站图标生成、素材检查、明确的原目录重命名及版本化交付清单。上传、持久任务和自更新尚未实现。已配置 GitHub 自动发布；下载是否可用取决于 main 分支成功运行工作流。
+**源码能力：**已实现图片、视频和文件夹压缩、音频/音乐无损优化及 GLB JSON 压缩、六角度 3D 海报、图片转换、网站图标生成、素材检查、明确的原目录重命名及版本化交付清单。上传、持久任务和自更新尚未实现。已配置 GitHub 自动发布；下载是否可用取决于 main 分支成功运行工作流。
 
 也可使用 `folder rename INPUT --renames PLAN.json` 明确重命名原目录：默认预览，添加 `--apply` 后按计划修改根目录或子目录名称，不改变文件内容。详见[用法](docs/usage.md#rename-original-folders-explicitly)。
 
@@ -41,6 +41,7 @@ pnpm --silent file-forge video compress ./clip.mp4 --width 1280 --height 720 --o
 # Losslessly optimize audio/music or a self-contained GLB
 pnpm --silent file-forge audio compress ./song.wav --output ./delivery --json
 pnpm --silent file-forge model compress ./scene.glb --output ./delivery --json
+pnpm --silent file-forge model posters ./scene.glb --width 1024 --output ./delivery --json
 
 # Compress a directory into a normalized hierarchy, preserving original dimensions
 pnpm --silent file-forge folder compress ./assets --output ./delivery --json
@@ -99,3 +100,7 @@ pnpm test:e2e    # Real non-UI CLI and media flows; requires FFmpeg
 推送到 `main` 后，在 macOS arm64 上运行 `pnpm check` 和真实 E2E，通过后发布下一个补丁版本（`0.0.1`、`0.0.2` 等）。拉取请求仅执行验证。每次发布包含运行包、版本匹配的插件 ZIP 和 SHA-256 校验文件。解压前验证校验和，再运行包内安装器。升级时使用相同前缀安装新包，然后重新连接 Codex MCP；自动 `--upgrade` 尚不可用。匹配的插件需单独安装和配置。Node.js 与 FFmpeg 仍需自行安装。
 
 发布标签指向已验证的源提交；CI 在临时检出目录中写入发布版本，不向 main 回写版本提交。已完成发布的重跑不会重复发布。失败草稿需检查和恢复，不会自动覆盖；已预留标签可能造成版本号间隔。仓库必须允许 GitHub Actions 写入发布和标签。本地检查不能证明某次远程工作流或发布已成功，请在 GitHub 上验证。
+
+3D 海报将六个轴向视图渲染为透明背景的无损 WebP。画布默认 1024 正方形；仅指定一个尺寸时为正方形，两个尺寸设置确切大小（16–4096）。需要本机 Chrome/Chromium，可通过 `FILE_FORGE_CHROME_PATH` 配置。源文件不变；模型/文件夹压缩不会自动生成海报。详见[海报行为、相机与限制（英文）](docs/model-posters.md)。
+
+Skill 同时支持 FileForge 内置流程和自定义 Sharp/FFmpeg 处理。Codex 根据需求选择合适的路线，检查相关已安装能力、保留源文件并验证产物。自定义处理使用宿主终端/Node 工具，无需安装 FileForge；缺少依赖、关键信息不明确或处理失败时，仍会提出解决方案并询问。详见[自定义处理（英文）](docs/custom-processing.md)。

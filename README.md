@@ -4,7 +4,7 @@
 
 Local media processing for people, scripts, and coding agents, powered by Sharp and FFmpeg. Available through a CLI and local MCP tools.
 
-**Source capabilities:** image/video/folder compression, lossless audio/music and GLB JSON optimization, image conversion, favicon generation, inspection, explicit source-folder renaming, and versioned delivery manifests are implemented. Uploads, persistent jobs, and self-update are not yet implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
+**Source capabilities:** image/video/folder compression, lossless audio/music and GLB JSON optimization, six-angle 3D posters, image conversion, favicon generation, inspection, explicit source-folder renaming, and versioned delivery manifests are implemented. Uploads, persistent jobs, and self-update are not yet implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
 
 Source folders can also be renamed explicitly with `folder rename INPUT --renames PLAN.json`: preview by default, `--apply` to apply an exact root/subfolder mapping. File contents remain unchanged; see [usage](docs/usage.md#rename-original-folders-explicitly).
 
@@ -41,6 +41,7 @@ pnpm --silent file-forge video compress ./clip.mp4 --width 1280 --height 720 --o
 # Losslessly optimize audio/music or a self-contained GLB
 pnpm --silent file-forge audio compress ./song.wav --output ./delivery --json
 pnpm --silent file-forge model compress ./scene.glb --output ./delivery --json
+pnpm --silent file-forge model posters ./scene.glb --width 1024 --output ./delivery --json
 
 # Compress a directory into a normalized hierarchy, preserving original dimensions
 pnpm --silent file-forge folder compress ./assets --output ./delivery --json
@@ -99,3 +100,7 @@ See the [product scope](specs/20261009-first-draft/PRODUCT.md), [technical desig
 Pushes to `main` run `pnpm check` and real E2E on macOS arm64 before publishing the next patch version (`0.0.1`, `0.0.2`, ...). Pull requests only validate. Each release includes the runtime archive, a matching plugin ZIP, and SHA-256 sidecars. Verify the checksum before extraction, then run the archive installer. To upgrade, install the newer archive using the same prefix and reconnect Codex MCP; automatic `--upgrade` remains unavailable. Install/configure the matching plugin separately. Node.js and FFmpeg remain external prerequisites.
 
 Release tags identify the tested source commit; CI stamps release versions in its disposable checkout. No version commits are pushed back to main. Completed release reruns do not publish duplicates. Failed drafts require inspection/recovery and are never overwritten automatically; reserved tags may leave version gaps. The repository must allow GitHub Actions to write releases/tags. Local checks do not establish whether a particular remote workflow or release succeeded; verify it on GitHub.
+
+3D posters render six axis views as lossless WebP with transparent backgrounds. The canvas defaults to 1024 square; one dimension makes a square, both set exact size (16–4096). Requires local Chrome/Chromium, configurable via `FILE_FORGE_CHROME_PATH`. Sources are unchanged; model/folder compression does not generate posters automatically. See [poster behavior, cameras and limits](docs/model-posters.md).
+
+The skill supports both built-in FileForge workflows and custom Sharp/FFmpeg processing. Codex selects the appropriate route from your request, checks the relevant installed capabilities, preserves sources and verifies outputs. Custom work uses host terminal/Node tools and does not require a FileForge installation; missing dependencies, essential ambiguity and failures still trigger a question with a proposed solution. See [custom processing](docs/custom-processing.md).

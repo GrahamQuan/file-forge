@@ -161,6 +161,7 @@ test("plugin-backed MCP executes all local operations, scopes paths, deduplicate
       "export_manifest",
       "file_forge_info",
       "generate_favicons",
+      "generate_model_posters",
       "inspect_files",
       "job_cancel",
       "job_status",
@@ -586,6 +587,72 @@ test("MCP runs lossless audio and model operations through scoped workers", asyn
       ).code,
       "PATH_OUTSIDE_ROOT",
     );
+  } finally {
+    if (client) await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("MCP renders default and single-axis posters and cancels with browser cleanup", async () => {
+  const { makePosterGlb } = await import("./poster-fixture.js");
+  const { posterOwner } = await import("./poster-owner.js");
+  const fs = await import("node:fs/promises");
+  const root = await mkdtemp(join(tmpdir(), "file-forge-posters-mcp-"));
+  let client;
+  try {
+    const input = join(root, "box.glb");
+    await fs.writeFile(input, makePosterGlb());
+    client = await connect(root);
+    await initialize(client);
+    for (const [id, options, size] of [
+      ["default", undefined, 1024],
+      ["height", { height: 64 }, 64],
+    ]) {
+      const request = {
+        requestId: id,
+        operation: "model-posters",
+        input,
+        output: join(root, id),
+        ...(options ? { options } : {}),
+      };
+      decode(await call(client, "generate_model_posters", request));
+      const job = await terminal(client, id);
+      assert.equal(job.status, "succeeded", JSON.stringify(job));
+      assert.ok(dead(job.workerPid));
+      assert.equal(job.result.assets.length, 6);
+      for (const asset of job.result.assets) {
+        const meta = await sharp(asset.output).metadata();
+        assert.deepEqual([meta.width, meta.height], [size, size]);
+      }
+    }
+    const output = join(root, "cancel");
+    decode(
+      await call(client, "generate_model_posters", {
+        requestId: "cancel",
+        operation: "model-posters",
+        input,
+        output,
+        options: { width: 4096 },
+      }),
+    );
+    let owner;
+    for (let i = 0; i < 1000 && !owner; i++) {
+      owner = await posterOwner(output);
+      if (!owner) await delay(20);
+    }
+    assert.ok(owner?.pid);
+    const start = Date.now();
+    decode(await call(client, "job_cancel", { requestId: "cancel" }));
+    assert.ok(Date.now() - start < 3000);
+    const stopped = await terminal(client, "cancel");
+    assert.equal(stopped.status, "cancelled");
+    assert.ok(dead(stopped.workerPid));
+    assert.ok(dead(owner.pid));
+    assert.equal(
+      JSON.parse(await readFile(join(owner.delivery, "manifest.json"), "utf8")).status,
+      "cancelled",
+    );
+    assert.ok(!(await readdir(owner.delivery)).some((n) => n.startsWith(".posters-")));
   } finally {
     if (client) await client.close();
     await rm(root, { recursive: true, force: true });

@@ -1,11 +1,13 @@
 ---
 name: file-forge
-description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Use when the user requests these operations on existing local files. Does not generate new artwork or upload files.
+description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Does not generate new artwork or upload files.
 ---
 
 # FileForge
 
-Use the configured FileForge MCP server for supported operations. First call `file_forge_info` and verify
+Choose the route from the user’s need: built-in FileForge when it fits, or [custom Sharp/FFmpeg processing](references/custom-processing.md) when it does not. Announce and proceed for a clear request with ready dependencies; no separate route-choice approval is needed. Custom work needs host terminal/Node access, not a working FileForge plugin. Missing dependencies, essential ambiguity or execution failures require stopping, explaining a concrete solution and asking before installation, repair or retry. Honor an explicitly selected route.
+
+For built-in operations use the configured FileForge MCP server. First call `file_forge_info` and verify
 runtime version `0.0.0`, the authorized root, and session limits. If setup fails, read
 [setup](../../SETUP.md); report the missing prerequisite. Never silently install or upgrade anything.
 Node.js >=22.13 and user-installed FFmpeg are required; Sharp is included with the runtime.
@@ -95,7 +97,7 @@ CLI supports `--recursive` and `--language en|zh-CN`, plus `config get language`
 1 partial/failure, 2 invalid arguments/configuration, and 130 cancellation. CLI cancellation waits for
 active media work; retain completed outputs and inspect delivery metadata.
 
-No uploads, general audio/composition CLI operations, ZIP intake, GLB processing, SVG-to-JSX, specialized delivery
+No uploads, general audio/composition CLI operations, ZIP intake, SVG-to-JSX, specialized delivery
 formats, persistent jobs, or self-update are implemented. Do not invent tools or promise those features.
 
 ## Explicit source-folder renaming
@@ -107,3 +109,9 @@ Video covers share the output video basename, with `.webp` instead of `.mp4` and
 ## Lossless audio and models
 
 Use `compress_audio` (`operation: "audio-compress"`) and `compress_model` (`operation: "model-compress"`) with `input`, `output` and `requestId`, then poll. Audio requires FFprobe, configurable through `FFPROBE_PATH`. Eligible 16/24-bit integer PCM/FLAC becomes smaller sample-verified FLAC; other encodings, extra streams, or non-beneficial candidates retain original bytes. GLB 2.0 optimization only compacts JSON whitespace and preserves binary data and decoder requirements; external-resource models are rejected. No lossy model/audio options exist. Folder processing dispatches both automatically, independently of width/height/quality. Read schema-v4 `lossless`, `optimization`, `note` and byte sizes; explicitly report `original-retained` with zero savings. Mixed-folder images/videos still use existing lossy presets.
+
+## Six-angle 3D posters
+
+Use `generate_model_posters` with `operation: "model-posters"`, `requestId`, `input`, `output`, and optional `options: { width, height }`, then poll. Input is a self-contained GLB 2.0 up to 256 MiB. Output is six lossless WebPs with normalized basename plus `-front`, `-back`, `-left`, `-right`, `-top`, `-bottom`. The transparent canvas defaults to 1024 square; one dimension makes a square and both set exact canvas size (16–4096). Existing image/video resize rules are unchanged. Front is +Z, back -Z, left -X, right +X, top +Y, bottom -Y, with shared orthographic framing and default scene/pose. No animation or semantic best-angle selection. Model/folder compression does not generate posters.
+
+Chrome/Chromium is required only for posters; macOS Chrome/Edge is discovered or use absolute `FILE_FORGE_CHROME_PATH`. Stop and ask with an installation/path remedy if missing. External resources, KTX2/Basis and unknown extensions fail; ask before changing input, tools or retrying. Sources are unchanged; lossless applies to rendered pixels, not equivalence with another viewer. Read schema-v5 per-view status, camera and output metadata, report partial results, and do not describe derivative image sizes as model compression savings. Each job owns an isolated browser/profile and cleans it up after success, failure or cancellation.

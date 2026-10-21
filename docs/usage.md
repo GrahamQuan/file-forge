@@ -158,3 +158,15 @@ file-forge model compress "/absolute/scene.glb" --output "/absolute/delivery" --
 ```
 
 Quality is strictly preserved. Eligible integer PCM/FLAC becomes sample-verified FLAC only when smaller; other audio retains its original bytes. Audio needs FFprobe. GLB support compacts JSON whitespace only, retaining all binary data and required extensions. It may save little or nothing. Folder compression includes these types automatically; its width/height/quality options still apply only to images/videos. See [formats, verification and limitations](lossless-audio-models.md). Results use schema v4 and explicitly report `original-retained` where appropriate.
+
+## Six-angle 3D posters
+
+```sh
+file-forge model posters "/absolute/scene.glb" --width 1200 --height 800 --json
+```
+
+Produces front/back/left/right/top/bottom lossless WebPs and a v5 manifest, preserving the model. Defaults to a transparent 1024-square canvas; one dimension makes a square. Requires local Chrome/Chromium. MCP uses `generate_model_posters` with operation `model-posters`. See [dimensions, cameras, dependencies and limits](model-posters.md). This is separate from folder/model compression.
+
+## Requests beyond built-in workflows
+
+Describe the result in chat, for example: “Crop this image to the specified region and add this logo,” or “Extract the second audio track without re-encoding.” Codex can select direct Sharp/FFmpeg when the built-in workflow does not fit, announce its choice, check the installed capabilities and process the files. Missing tools, unclear essential parameters and failures still trigger a question with a proposed solution. See [custom processing](custom-processing.md). These operations use host execution tools, not an arbitrary-command FileForge endpoint.

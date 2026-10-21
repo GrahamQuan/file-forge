@@ -27,7 +27,7 @@ Folder compression normalizes output path components to lowercase ASCII letters/
 
 Audio/music: `audio compress` / `compress_audio`. GLB: `model compress` / `compress_model`. Both also dispatch inside folders; see [lossless policy and limits](lossless-audio-models.md).
 
-Manifest versions: v1 inspection/image/video/export, v2 folder delivery, v3 source-folder rename receipt. v4 covers audio/model deliveries and mixed folders. Readers/re-export accept all four. Failures, skips and current rename paths must be read from the result, not inferred from process exit alone.
+Manifest versions: v1 inspection/image/video/export, v2 folder delivery, v3 source-folder rename receipt. v4 covers audio/model deliveries and mixed folders. v5 covers six-angle model posters. Readers/re-export accept all five. Failures, skips and current rename paths must be read from the result, not inferred from process exit alone.
 
 ## Distribution and remaining work
 
@@ -36,3 +36,7 @@ Implemented: local macOS arm64 archives and managed installation/rollback, plugi
 Not implemented as FileForge CLI/MCP features: S3 uploads, durable job storage, automatic `--upgrade`, general audio editing/composition or arbitrary FFmpeg filters, lossy model optimization, and built-in HyperFrames rendering. HyperFrames can be orchestrated externally for an explicitly requested motion workflow. Proposed workflow scripts in older specs are not available unless listed in the actual package scripts/help.
 
 Video covers use the same basename as their MP4: standalone `video.mp4` / `video.webp`, or the normalized source basename in folder deliveries. Cover/image path collisions fail folder preflight before output creation.
+
+3D posters: `model posters` / `generate_model_posters` renders six axis-aligned lossless WebPs from self-contained GLB using Three.js and external Chrome/Chromium. Transparent 1024-square canvas by default; one dimension makes a square, both set canvas dimensions (16–4096). Independent of folder/model compression; sources are unchanged. See [poster contract](model-posters.md).
+
+The skill also supports [custom Sharp/FFmpeg processing](custom-processing.md) through authorized host tools. Codex chooses this route when built-in presets do not fit. This extends the skill’s workflows, not the CLI/MCP command schema; direct jobs have their own process tracking and output verification.

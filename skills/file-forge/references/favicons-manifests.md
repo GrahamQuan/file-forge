@@ -30,4 +30,4 @@ file-forge manifest export --manifest "/absolute/manifest.json" --output "/absol
 
 The versioned manifest contains statuses and source/output mappings; Markdown is an English report. Absolute paths are present in manifest mappings; `includePaths` controls report presentation, not manifest anonymization. Review before sharing. Do not claim the generic report matches a project's specialized handoff schema without comparing that schema.
 
-Readers accept v1/v2/v3 and v4 audio/model deliveries or mixed folders. Audio/model assets report lossless optimization and retained-original outcomes separately; do not infer savings from success alone.
+Readers accept v1/v2/v3, v4 audio/model deliveries or mixed folders, and v5 six-angle model posters. Poster assets record per-view camera, dimensions and status; their byte size is not model compression savings. Audio/model assets report lossless optimization and retained-original outcomes separately; do not infer savings from success alone.

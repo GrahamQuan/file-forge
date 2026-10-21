@@ -39,6 +39,7 @@ Usage:
   file-forge folder compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge audio compress <input> [--output DIR] [--json]
   file-forge model compress <input.glb> [--output DIR] [--json]
+  file-forge model posters <input.glb> [--width N] [--height N] [--output DIR] [--json]
   file-forge video compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
@@ -52,7 +53,8 @@ Compression preserves original dimensions when no size is supplied; supply width
 Output: a new task directory under Downloads or --output. Sources and existing outputs are preserved by media workflows. Folder rename previews by default; --apply renames original directories from an explicit JSON plan.
 Folder compression always recurses; other directory operations require --recursive. Symlinks, animated images, SVG, and unsupported files are reported explicitly.
 Audio/music: strictly lossless; eligible PCM/FLAC becomes smaller verified FLAC, otherwise original bytes are retained. Requires FFprobe (FFPROBE_PATH supported). Models: self-contained GLB 2.0 JSON compaction only; binary data stays unchanged. Folder processing includes both.
-Manifest export accepts existing assets without processing them, or an existing version 1, 2, 3 or 4 manifest.
+3D posters: six axis views as lossless WebP, transparent canvas, default 1024 square; one dimension makes a square, both set the canvas (16–4096). Requires Chrome/Chromium; FILE_FORGE_CHROME_PATH selects an absolute executable. Model/folder compression does not generate posters.
+Manifest export accepts existing assets without processing them, or an existing version 1, 2, 3, 4 or 5 manifest.
 Exit codes: 0 success/empty, 1 partial/failure, 2 invalid arguments/configuration, 130 interruption.
 MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition commands, specialized templates, public releases, and upgrades are not implemented.`,
     invalid: "Invalid arguments. Use --help for supported commands and options.",
@@ -93,6 +95,7 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
   file-forge folder compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge audio compress <input> [--output DIR] [--json]
   file-forge model compress <input.glb> [--output DIR] [--json]
+  file-forge model posters <input.glb> [--width N] [--height N] [--output DIR] [--json]
   file-forge video compress <input> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
@@ -106,7 +109,8 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
 产物保存在 Downloads 或 --output 下的新任务目录中。媒体处理保留源文件和现有产物。folder rename 默认预览；--apply 按明确的 JSON 计划重命名原目录。
 文件夹压缩总是递归；其他目录操作需要 --recursive。符号链接、动画图片、SVG 和不支持的文件会明确报告。
 音频/音乐：严格无损；符合条件的 PCM/FLAC 仅在样本验证通过且更小时转为 FLAC，否则保留原字节。需要 FFprobe（支持 FFPROBE_PATH）。模型：仅压缩自包含 GLB 2.0 的 JSON 空白，二进制数据不变。文件夹处理包含这两类素材。
-清单导出可接收现有素材而不重新处理，也可接收版本 1、2、3 或 4 的现有清单。
+3D 海报：六个轴向视图，无损 WebP、透明画布，默认 1024 正方形；仅指定一个尺寸时为正方形，两个尺寸确定画布（16–4096）。需要 Chrome/Chromium；FILE_FORGE_CHROME_PATH 可指定可执行文件的绝对路径。模型或文件夹压缩不会自动生成海报。
+清单导出可接收现有素材而不重新处理，也可接收版本 1、2、3、4 或 5 的现有清单。
 退出码：0 成功或空集合，1 部分成功或失败，2 参数或配置错误，130 中断。
 MCP 使用 STDIO，需要设置 FILE_FORGE_ROOT。上传、通用合成命令、专用模板、公开发布和升级尚未实现。`,
     invalid: "参数无效。使用 --help 查看支持的命令和选项。",

@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit, Layer, Result, Stdio, Stream } from "effect";
 import { NodeServices } from "@effect/platform-node";
 import { executeRequest } from "@file-forge/core";
-import { ffmpegLayer, FaviconEngineLive, ImageEngineLive } from "@file-forge/media";
+import { ffmpegLayer, FaviconEngineLive, ImageEngineLive, posterLayer } from "@file-forge/media";
 import { scopeRequest } from "./scope.js";
 const abort = new AbortController();
 const stop = () => abort.abort();
@@ -23,6 +23,7 @@ const program = Effect.gen(function* () {
     Layer.mergeAll(
       NodeServices.layer,
       ImageEngineLive,
+      posterLayer(process.env.FILE_FORGE_CHROME_PATH),
       FaviconEngineLive,
       ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg", process.env.FFPROBE_PATH),
     ),

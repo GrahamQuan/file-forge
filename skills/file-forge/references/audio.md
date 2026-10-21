@@ -15,3 +15,5 @@ Eligible 16/24-bit integer PCM and FLAC become FLAC only after decoded-sample ha
 Folder compression automatically uses this policy for audio/music. Dimensions and quality do not affect audio. Output collision checks include the possible FLAC path. Mixed folders still use the existing lossy image/video presets; do not describe the whole folder as lossless. If the user requires strictly lossless images/videos too, stop and explain that those existing presets do not meet that requirement.
 
 Read schema-v4 asset fields `lossless`, `optimization`, `note`, `size`, `outputSize`, and `sizeChange`. `original-retained` is a valid successful outcome with zero savings. Report it explicitly, alongside the actual path and format. Never claim smaller size solely because the job succeeded.
+
+For requested operations beyond these presets, select [custom processing](custom-processing.md) and read [direct FFmpeg](ffmpeg.md). Do not force the request into a mismatched built-in operation.

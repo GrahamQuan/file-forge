@@ -1,4 +1,4 @@
-# Lossless 3D models: GLB
+# 3D models: lossless compression and six-angle posters
 
 Use `model compress` for self-contained GLB 2.0. Prefer connected `compress_model`. Check installed help and tool schemas first; older releases may lack this operation. No lossy fallback is authorized by a compression request.
 
@@ -13,3 +13,20 @@ GLB optimization only compacts JSON whitespace, preserving numeric tokens and al
 Folder compression automatically uses this policy for GLB files. Dimensions and quality do not affect models. Sources remain intact. Mixed folders still use the existing lossy image/video presets; do not describe the whole folder as lossless. If the user requires strictly lossless images/videos too, stop and explain that those existing presets do not meet that requirement.
 
 Read schema-v4 asset fields `lossless`, `optimization`, `note`, `size`, `outputSize`, and `sizeChange`. `original-retained` is a valid successful outcome with zero savings. Report it explicitly, alongside the actual path and format. Never claim smaller size solely because the job succeeded.
+
+## Six-angle posters
+
+Use `model posters` / connected `generate_model_posters` when the user wants preview images of a GLB. This is independent of compression; neither `model compress` nor `folder compress` creates posters. Check installed help/schema first.
+
+```sh
+file-forge model posters "/absolute/My Model.glb" --width 1200 --height 800 --json
+```
+
+The MCP request uses `requestId`, `operation: "model-posters"`, `input`, `output` and optional `options: { width, height }`. Poll/cancel with the ordinary job tools. Output must be inside the authorized MCP root.
+
+- Generate all six lossless WebP files: `my-model-front.webp`, `my-model-back.webp`, `my-model-left.webp`, `my-model-right.webp`, `my-model-top.webp`, `my-model-bottom.webp`. Do not invent a selected best poster or compress the model as an extra step.
+- Default canvas is transparent 1024 × 1024. One dimension makes a square; both set exact canvas size, each 16–4096. A 3D model has no original pixel aspect ratio. These defaults do not change image/video no-resize behavior.
+- Axis directions are front +Z, back -Z, left -X, right +X, top +Y, bottom -Y. Shared orthographic framing and lighting use the default scene/pose without animation. Explain that axis-front can differ from the apparent front of a rotated model; ask if the user requires a semantic angle or different pose that the tool cannot provide.
+- Check for local Chrome/Chromium (macOS Chrome or Edge under `/Applications`), or an absolute `FILE_FORGE_CHROME_PATH`. Three.js and decoders are packaged. A missing browser blocks only posters. Follow the entry skill's stop-and-ask rule before installing; propose the existing executable path or an approved browser installation. No user profile or existing tabs are used.
+- Input must be a self-contained GLB 2.0 up to 256 MiB. External resources, KTX2/Basis and unknown extensions are rejected. Do not silently remove materials/textures or change rendering tools after a failure. Diagnose `POSTER_BROWSER_REQUIRED`, `POSTER_UNSUPPORTED_MODEL`, `POSTER_RENDER_FAILED` or `POSTER_TIMEOUT`, explain a concrete remedy and ask before retrying or changing scope.
+- Read schema-v5 per-view status and camera/output metadata. Report partial/cancelled results and retain successful views. Lossless refers to WebP encoding of rendered pixels; sources remain unchanged, but appearance depends on the renderer and lighting. Do not report image-versus-model size differences as compression savings.

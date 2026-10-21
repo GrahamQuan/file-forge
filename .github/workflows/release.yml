@@ -37,6 +37,7 @@ jobs:
         run: |
           test "$(uname -m)" = arm64
           brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+          test -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" || brew install --cask google-chrome
           pnpm install --frozen-lockfile
       - name: Select next patch version
         id: version
@@ -121,7 +122,7 @@ jobs:
             const body = [
               `Source commit: ${context.sha}`,
               '',
-              'macOS Apple Silicon runtime. Install Node.js 24 and FFmpeg separately.',
+              'macOS Apple Silicon runtime. Install Node.js 24 and FFmpeg separately. Six-angle 3D posters additionally require local Chrome/Chromium.',
               'Download the archive and SHA-256 sidecar, verify with shasum -a 256 -c, then extract and run ./install.js.',
               'To upgrade, install this new archive with the same --prefix; earlier managed builds are retained. Reconnect Codex MCP afterward.',
               'The matching plugin ZIP requires separate runtime installation and local configuration. Automatic CLI self-update is not included yet.',

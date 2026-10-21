@@ -21,3 +21,5 @@ MCP request bodies, plus a unique `requestId`:
 - `process_images`: `{"operation":"image","files":["/absolute/input.png"],"options":{"format":"avif","width":300},"output":"/absolute/output-parent"}`
 
 Read live schemas before submitting. Animated images and unsupported formats are reported, not flattened silently. Originals remain unchanged. [Validate the result](execution.md) rather than claiming success solely from exit status.
+
+For requested operations beyond these presets, select [custom processing](custom-processing.md) and read [direct Sharp](sharp.md). Do not force the request into a mismatched built-in operation.

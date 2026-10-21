@@ -2,10 +2,11 @@ import { homedir } from "node:os";
 import { Effect, FileSystem, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { executeRequest, OperationError, type Manifest } from "@file-forge/core";
-import { ffmpegLayer, FaviconEngineLive, ImageEngineLive } from "@file-forge/media";
+import { ffmpegLayer, FaviconEngineLive, ImageEngineLive, posterLayer } from "@file-forge/media";
 
 export const MediaLive = Layer.mergeAll(
   ImageEngineLive,
+  posterLayer(process.env.FILE_FORGE_CHROME_PATH),
   FaviconEngineLive,
   ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg", process.env.FFPROBE_PATH),
 );
@@ -177,6 +178,31 @@ export const commands = (
   const lossless = (kind: "audio" | "model") =>
     Command.make(kind).pipe(
       Command.withSubcommands([
+        ...(kind === "model"
+          ? [
+              Command.make(
+                "posters",
+                {
+                  input: Argument.String("input"),
+                  output,
+                  width: Flag.Int("width").pipe(Flag.optional),
+                  height: Flag.Int("height").pipe(Flag.optional),
+                },
+                (args) =>
+                  Effect.gen(function* () {
+                    yield* executeRequest({
+                      operation: "model-posters",
+                      input: args.input,
+                      output: yield* outputParent(args.output),
+                      options: {
+                        ...(Option.isSome(args.width) ? { width: args.width.value } : {}),
+                        ...(Option.isSome(args.height) ? { height: args.height.value } : {}),
+                      },
+                    }).pipe(Effect.flatMap(emit));
+                  }),
+              ),
+            ]
+          : []),
         Command.make("compress", { input: Argument.String("input"), output }, (args) =>
           Effect.gen(function* () {
             yield* executeRequest({

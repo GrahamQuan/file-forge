@@ -2,7 +2,7 @@
 
 The canonical reusable skill lives in [`skills/file-forge`](../skills/file-forge/SKILL.md). After every code change, update this skill and all affected documentation here, then copy it into consuming projects when requested. ProductDesignSkills is a consumer, not a separate source of truth.
 
-This skill is the routing map for prerequisites, runtime/plugin setup and upgrades, images, videos, lossless audio/music and GLB, folders, source-folder renaming, favicons, manifests and troubleshooting. It stops and asks with a proposed solution when required tools, essential information or repairs are missing. No width/height means no resizing.
+This skill is the routing map for prerequisites, runtime/plugin setup and upgrades, images, videos, lossless audio/music and GLB, six-angle model posters, folders, source-folder renaming, favicons, manifests, custom Sharp/FFmpeg processing and troubleshooting. It stops and asks with a proposed solution when required tools, essential information or repairs are missing. No width/height means no resizing for existing images/videos; 3D posters use their separate canvas defaults.
 
 ## Copy from a source checkout
 
@@ -48,3 +48,5 @@ Success JSON reports `schemaVersion`, `source`, `project`, `target`, `status`, a
 | `packages/cli` with core/media/MCP | Executable processing implementation                           | Source build or verified macOS arm64 runtime archive         |
 
 Copying the skill does not install/upgrade the runtime, register a plugin, change user-wide Codex settings, or inject tools into the current chat. Start a fresh project chat if needed to discover `$file-forge`; use its setup references when runtime/plugin work is requested. Update compact plugin instructions whenever behavior changes, while keeping detailed user workflow references in the canonical reusable skill.
+
+Keep the three custom-processing references aligned between the canonical skill and compact plugin skill; the plugin ships its own copies so no source-checkout link is needed at runtime. Route selection is automatic for clear requests; missing dependencies and failed operations retain stop-and-ask behavior.

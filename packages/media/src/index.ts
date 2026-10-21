@@ -285,3 +285,15 @@ export const compressVideo = (input: string, directory: string, options: Compres
   );
 
 export { compressAudio, compressGlb, audioExtensions, type LosslessResult } from "./lossless.js";
+
+export {
+  openPosterRenderer,
+  posterLayer,
+  PosterConfig,
+  PosterError,
+  PosterOptionsSchema,
+  validatePosterOptions,
+  posterViews,
+  type PosterView,
+  type PosterOptions,
+} from "./posters.js";

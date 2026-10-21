@@ -1,7 +1,13 @@
 import { Effect, Schema } from "effect";
-import { CompressionOptionsSchema, ImageOptionsSchema, FaviconSizeSchema } from "@file-forge/media";
+import {
+  CompressionOptionsSchema,
+  ImageOptionsSchema,
+  FaviconSizeSchema,
+  PosterOptionsSchema,
+} from "@file-forge/media";
 import {
   compressImages,
+  generateModelPosters,
   compressLosslessFile,
   compressFolder,
   renameFolders,
@@ -50,6 +56,12 @@ export const ModelCompressionRequest = Schema.Struct({
   input: text,
   output: text,
 });
+export const ModelPostersRequest = Schema.Struct({
+  operation: Schema.Literal("model-posters"),
+  input: text,
+  output: text,
+  options: Schema.optional(PosterOptionsSchema),
+});
 export const FolderCompressionRequest = Schema.Struct({
   operation: Schema.Literal("folder-compress"),
   input: text,
@@ -81,6 +93,7 @@ export const OperationRequest = Schema.Union([
   InspectRequest,
   AudioCompressionRequest,
   ModelCompressionRequest,
+  ModelPostersRequest,
   ImageCompressionRequest,
   VideoCompressionRequest,
   FolderCompressionRequest,
@@ -120,6 +133,8 @@ export const executeRequest = (input: unknown) =>
   Effect.gen(function* () {
     const request = yield* validateRequest(input);
     switch (request.operation) {
+      case "model-posters":
+        return yield* generateModelPosters(request.input, request.options ?? {}, request.output);
       case "audio-compress":
         return yield* compressLosslessFile(request.input, "audio", request.output);
       case "model-compress":

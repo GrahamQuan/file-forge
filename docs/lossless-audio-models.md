@@ -34,3 +34,5 @@ MCP tools accept `operation: "audio-compress"` or `"model-compress"`, `input`, `
 New single-file deliveries and folders containing audio/models use schema v4. Existing v1/v2/v3 manifests remain readable and exportable. Assets record `lossless`, `optimization`, optional `note`, source/output sizes and `sizeChange`; audio also records sample rate, channels and available bit depth. `lossless` applies to each audio/model asset, not to other images/videos in a mixed folder. Read actual sizes and the optimization result before reporting savings.
 
 Validation uses real CLI and MCP jobs: 16/24-bit PCM decoded-sample equality, floating-point/MP3 byte preservation, animated/textured GLB JSON and binary preservation, unchanged outcomes, manifest round trips, malformed/external inputs, folder collisions, and worker/staging cleanup. No UI testing is required.
+
+For rendered model previews, use the separate [six-angle poster workflow](model-posters.md). It leaves the GLB unchanged and emits lossless WebP derivatives; neither compression command automatically generates them.
