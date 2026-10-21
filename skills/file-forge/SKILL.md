@@ -53,7 +53,7 @@ Example: “I found two folders named assets. Which should I process: the projec
 | Poll/cancel jobs, compare size, explain partial failures | [Execution and results](references/execution.md)               | `job_status`, `job_cancel`; output validation  |
 | Errors, old versions, unavailable workflow               | [Troubleshooting](references/troubleshooting.md)               | Diagnose before retrying                       |
 
-For audio/music compression, read [audio and music](references/audio.md) and use `compress_audio`. For 3D model compression, read [3D models](references/models-3d.md) and use `compress_model`. Both support corresponding CLI commands; quality preservation takes priority over size reduction.
+For audio/music compression, read [audio and music](references/audio.md) and use `compress_audio`. For 3D model compression, read [3D models](references/3d-models.md) and use `compress_model`. Both support corresponding CLI commands; quality preservation takes priority over size reduction.
 
 ## Shared behavior
 

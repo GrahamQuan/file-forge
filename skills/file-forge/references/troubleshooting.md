@@ -23,4 +23,4 @@ FileForge does not currently expose S3 upload, persistent jobs, arbitrary FFmpeg
 
 Language commands are `file-forge config get language`, `file-forge config set language en|zh-CN`, and one-shot `--language en|zh-CN`. Prefer a one-shot override for a single task. Machine JSON keys, error codes and tool schemas remain English.
 
-For lossless audio/model tools, see [audio/music](audio.md) or [3D models](models-3d.md). `FFPROBE_FAILED` requires an available matching FFprobe path; `AUDIO_VERIFICATION_FAILED` means no candidate was delivered because exact sample/property preservation could not be established. Diagnose and ask before retrying or changing routes. `original-retained` is successful with zero savings, not a tool failure.
+For lossless audio/model tools, see [audio/music](audio.md) or [3D models](3d-models.md). `FFPROBE_FAILED` requires an available matching FFprobe path; `AUDIO_VERIFICATION_FAILED` means no candidate was delivered because exact sample/property preservation could not be established. Diagnose and ask before retrying or changing routes. `original-retained` is successful with zero savings, not a tool failure.
