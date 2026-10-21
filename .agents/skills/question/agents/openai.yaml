@@ -1,0 +1,7 @@
+interface:
+  display_name: "Question"
+  short_description: "Discuss and explain in English using ASCII diagrams, without changing files."
+  default_prompt: "Use $question to discuss this topic without modifying any files."
+
+policy:
+  allow_implicit_invocation: false

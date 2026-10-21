@@ -1,0 +1,25 @@
+{
+  "name": "@file-forge/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.2",
+    "@file-forge/core": "workspace:*",
+    "@file-forge/media": "workspace:*",
+    "effect": "4.0.2"
+  }
+}

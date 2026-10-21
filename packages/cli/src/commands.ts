@@ -1,0 +1,151 @@
+import { homedir } from "node:os";
+import { Effect, Layer, Option, Path } from "effect";
+import { Argument, Command, Flag } from "effect/cli";
+import { executeRequest, OperationError, type Manifest } from "@file-forge/core";
+import { ffmpegLayer, FaviconEngineLive, ImageEngineLive } from "@file-forge/media";
+
+export const MediaLive = Layer.mergeAll(
+  ImageEngineLive,
+  FaviconEngineLive,
+  ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg"),
+);
+export const commands = (
+  emit: (result: Manifest & { directory?: string }) => Effect.Effect<void>,
+  progress: Effect.Effect<void>,
+  faviconProgress: Effect.Effect<void>,
+) => {
+  const files = Argument.String("files").pipe(Argument.variadic());
+  const output = Flag.String("output").pipe(Flag.optional);
+  const recursive = Flag.Boolean("recursive").pipe(Flag.withDefault(false));
+  const outputParent = (value: Option.Option<string>) =>
+    Effect.gen(function* () {
+      const path = yield* Path.Path;
+      if (Option.isSome(value)) return path.resolve(value.value);
+      if (process.platform !== "darwin")
+        return yield* new OperationError({
+          code: "INVALID_INPUT",
+          detail: "Explicit output is required outside macOS",
+        });
+      return path.join(homedir(), "Downloads");
+    });
+  const inspect = Command.make("inspect", { files, recursive }, ({ files, recursive }) =>
+    executeRequest({ operation: "inspect", files, recursive }).pipe(Effect.flatMap(emit)),
+  );
+  const processCommand = Command.make(
+    "process",
+    {
+      files,
+      recursive,
+      output,
+      width: Flag.Int("width").pipe(Flag.optional),
+      height: Flag.Int("height").pipe(Flag.optional),
+      quality: Flag.Int("quality").pipe(Flag.optional),
+      format: Flag.String("format").pipe(Flag.optional),
+    },
+    (args) =>
+      Effect.gen(function* () {
+        const parent = yield* outputParent(args.output);
+        yield* progress;
+        // Shared core runtime schema validates the untrusted CLI format and numeric values.
+        const options = Object.fromEntries(
+          ["width", "height", "quality", "format"].flatMap((key) => {
+            const value: Option.Option<string | number> =
+              args[key as "width" | "height" | "quality" | "format"];
+            return Option.isSome(value) ? [[key, value.value]] : [];
+          }),
+        );
+        const result = yield* executeRequest({
+          operation: "image",
+          files: args.files,
+          options,
+          output: parent,
+          recursive: args.recursive,
+        });
+        yield* emit(result);
+      }),
+  );
+  const compression = (video: boolean) =>
+    Command.make(
+      "compress",
+      {
+        files,
+        output,
+        width: Flag.Int("width"),
+        height: Flag.Int("height"),
+        quality: Flag.Int("quality").pipe(Flag.withDefault(80)),
+      },
+      (args) =>
+        Effect.gen(function* () {
+          if (video && args.files.length !== 1)
+            return yield* new OperationError({
+              code: "INVALID_INPUT",
+              detail: "Supply one video file",
+            });
+          const result = yield* executeRequest({
+            operation: video ? "video-compress" : "image-compress",
+            ...(video ? { input: args.files[0] } : { files: args.files }),
+            options: { width: args.width, height: args.height, quality: args.quality },
+            output: yield* outputParent(args.output),
+          });
+          yield* emit(result);
+        }),
+    );
+  const image = Command.make("image").pipe(
+    Command.withSubcommands([processCommand, compression(false)]),
+  );
+  const video = Command.make("video").pipe(Command.withSubcommands([compression(true)]));
+  const delivery = Command.make(
+    "export",
+    {
+      files,
+      recursive,
+      output,
+      manifest: Flag.String("manifest").pipe(Flag.optional),
+      includePaths: Flag.Boolean("include-paths").pipe(Flag.withDefault(false)),
+    },
+    (args) =>
+      Effect.gen(function* () {
+        if (Option.isSome(args.manifest) && args.files.length)
+          return yield* new OperationError({
+            code: "INVALID_INPUT",
+            detail: "Choose files or a manifest",
+          });
+        const result = yield* executeRequest({
+          operation: "export",
+          ...(Option.isSome(args.manifest)
+            ? { manifest: args.manifest.value }
+            : { files: args.files }),
+          output: yield* outputParent(args.output),
+          recursive: args.recursive,
+          includePaths: args.includePaths,
+        });
+        yield* emit(result);
+      }),
+  );
+  const favicon = Command.make(
+    "generate",
+    {
+      input: Argument.String("input"),
+      output,
+      size: Flag.Int("size").pipe(Flag.withDefault(64)),
+    },
+    (args) =>
+      Effect.gen(function* () {
+        yield* faviconProgress;
+        const result = yield* executeRequest({
+          operation: "favicon",
+          input: args.input,
+          output: yield* outputParent(args.output),
+          size: args.size,
+        });
+        yield* emit(result);
+      }),
+  );
+  return [
+    inspect,
+    Command.make("favicon").pipe(Command.withSubcommands([favicon])),
+    image,
+    video,
+    Command.make("manifest").pipe(Command.withSubcommands([delivery])),
+  ] as const;
+};

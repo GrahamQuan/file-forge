@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "file-forge": {
+      "type": "stdio",
+      "command": "/bin/sh",
+      "args": ["${PLUGIN_ROOT}/scripts/start.sh"]
+    }
+  }
+}

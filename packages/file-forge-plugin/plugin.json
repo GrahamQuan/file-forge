@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "file-forge",
+  "version": "0.0.0",
+  "description": "Inspect local images, process batches, generate favicons, and export delivery manifests with FileForge.",
+  "author": { "name": "FileForge" },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "FileForge",
+        "shortDescription": "Local images and favicons",
+        "longDescription": "Local image inspection, resizing, compression, conversion, favicon generation, and generic delivery manifests. Requires a separately configured FileForge runtime, Node.js, and FFmpeg.",
+        "developerName": "FileForge",
+        "category": "Developer Tools",
+        "defaultPrompt": "Use FileForge to inspect and prepare my local image assets."
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@file-forge/cli",
+  "version": "0.0.0",
+  "private": true,
+  "bin": {
+    "file-forge": "dist/launcher.js"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/build-launcher.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.2",
+    "@file-forge/core": "workspace:*",
+    "@file-forge/mcp": "workspace:*",
+    "@file-forge/media": "workspace:*",
+    "effect": "4.0.2"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
