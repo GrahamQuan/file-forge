@@ -4,7 +4,7 @@
 
 Local media processing for people, scripts, and coding agents, powered by Sharp and FFmpeg. Available through a CLI and local MCP tools.
 
-**Source capabilities:** image/video/folder compression, image conversion, favicon generation, inspection, explicit source-folder renaming, and versioned delivery manifests are implemented. Uploads, persistent jobs, and self-update are not yet implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
+**Source capabilities:** image/video/folder compression, lossless audio/music and GLB JSON optimization, image conversion, favicon generation, inspection, explicit source-folder renaming, and versioned delivery manifests are implemented. Uploads, persistent jobs, and self-update are not yet implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
 
 Source folders can also be renamed explicitly with `folder rename INPUT --renames PLAN.json`: preview by default, `--apply` to apply an exact root/subfolder mapping. File contents remain unchanged; see [usage](docs/usage.md#rename-original-folders-explicitly).
 
@@ -38,6 +38,10 @@ pnpm --silent file-forge image compress ./assets --width 1200 --height 800 --out
 # Compress a video to MP4 and generate a WebP cover
 pnpm --silent file-forge video compress ./clip.mp4 --width 1280 --height 720 --output ./delivery --json
 
+# Losslessly optimize audio/music or a self-contained GLB
+pnpm --silent file-forge audio compress ./song.wav --output ./delivery --json
+pnpm --silent file-forge model compress ./scene.glb --output ./delivery --json
+
 # Compress a directory into a normalized hierarchy, preserving original dimensions
 pnpm --silent file-forge folder compress ./assets --output ./delivery --json
 
@@ -53,6 +57,8 @@ Compression keeps the original dimensions when no width or height is supplied. S
 Media outputs and rename receipts go into a new `file-forge-<id>` directory with `manifest.json` and `report.md`. Media source files are preserved; applying an explicit folder-rename plan changes directory names only. Keep output directories outside input directories. `--json` emits the final result to stdout; diagnostics go to stderr.
 
 English is the default. Save Chinese as your preference with `file-forge config set language zh-CN`, or use `--language en|zh-CN` for one invocation.
+
+Audio/music and GLB use strictly lossless optimization, including inside folders. Audio requires FFprobe (`FFPROBE_PATH` supported); eligible integer PCM/FLAC becomes smaller verified FLAC, otherwise original bytes are retained. GLB only compacts JSON whitespace and preserves binary data, so savings may be small or zero. These defaults do not change existing lossy image/video behavior. See [policy and supported formats](docs/lossless-audio-models.md).
 
 ## Codex and installation
 

@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { CompressionOptionsSchema, ImageOptionsSchema, FaviconSizeSchema } from "@file-forge/media";
 import {
   compressImages,
+  compressLosslessFile,
   compressFolder,
   renameFolders,
   compressVideoFile,
@@ -39,6 +40,16 @@ export const VideoCompressionRequest = Schema.Struct({
   options: CompressionOptionsSchema,
   output: text,
 });
+export const AudioCompressionRequest = Schema.Struct({
+  operation: Schema.Literal("audio-compress"),
+  input: text,
+  output: text,
+});
+export const ModelCompressionRequest = Schema.Struct({
+  operation: Schema.Literal("model-compress"),
+  input: text,
+  output: text,
+});
 export const FolderCompressionRequest = Schema.Struct({
   operation: Schema.Literal("folder-compress"),
   input: text,
@@ -68,6 +79,8 @@ export const ExportRequest = Schema.Struct({
 });
 export const OperationRequest = Schema.Union([
   InspectRequest,
+  AudioCompressionRequest,
+  ModelCompressionRequest,
   ImageCompressionRequest,
   VideoCompressionRequest,
   FolderCompressionRequest,
@@ -107,6 +120,10 @@ export const executeRequest = (input: unknown) =>
   Effect.gen(function* () {
     const request = yield* validateRequest(input);
     switch (request.operation) {
+      case "audio-compress":
+        return yield* compressLosslessFile(request.input, "audio", request.output);
+      case "model-compress":
+        return yield* compressLosslessFile(request.input, "model", request.output);
       case "image-compress":
         return yield* compressImages(
           request.files,

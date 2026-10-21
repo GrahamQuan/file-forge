@@ -141,3 +141,5 @@ pnpm --silent file-forge --version
 ```
 
 Source execution uses `packages/cli/dist/launcher.js`; rebuild after changes. For source-plugin setup, follow [SETUP.md](../packages/file-forge-plugin/SETUP.md). Development version `0.0.0` is distinct from release versions stamped by CI. Do not mix a release plugin with an incompatible source runtime.
+
+Audio processing additionally requires FFprobe beside an absolute FFmpeg executable or on PATH; set an absolute `FFPROBE_PATH` in the CLI environment or both plugin MCP configurations when needed. No separate GLB optimizer is required for JSON compaction. Source tools `compress_audio` and `compress_model` require a matching runtime; inspect schemas before assuming release availability.

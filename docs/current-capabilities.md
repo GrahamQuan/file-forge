@@ -25,12 +25,14 @@ Media operations preserve originals and create `file-forge-<id>` output director
 
 Folder compression normalizes output path components to lowercase ASCII letters/digits/hyphens and keeps extensions separate. It rejects collisions and empty normalized stems, skips `.DS_Store`, symlinks and animated images, and preserves empty directories. Embedded references in copied files are not rewritten.
 
-Manifest versions: v1 inspection/image/video/export, v2 folder delivery, v3 source-folder rename receipt. Readers/re-export accept all three. Failures, skips and current rename paths must be read from the result, not inferred from process exit alone.
+Audio/music: `audio compress` / `compress_audio`. GLB: `model compress` / `compress_model`. Both also dispatch inside folders; see [lossless policy and limits](lossless-audio-models.md).
+
+Manifest versions: v1 inspection/image/video/export, v2 folder delivery, v3 source-folder rename receipt. v4 covers audio/model deliveries and mixed folders. Readers/re-export accept all four. Failures, skips and current rename paths must be read from the result, not inferred from process exit alone.
 
 ## Distribution and remaining work
 
 Implemented: local macOS arm64 archives and managed installation/rollback, plugin ZIP packaging, checksums, and gated GitHub Actions patch releases on `main`. Runtime and plugin are separately installed; Node/FFmpeg remain external prerequisites. Verify actual published assets rather than treating local checks as remote-release evidence.
 
-Not implemented as FileForge CLI/MCP features: S3 uploads, durable job storage, automatic `--upgrade`, general audio/composition or arbitrary FFmpeg filters, GLB optimization, and built-in HyperFrames rendering. HyperFrames can be orchestrated externally for an explicitly requested motion workflow. Proposed workflow scripts in older specs are not available unless listed in the actual package scripts/help.
+Not implemented as FileForge CLI/MCP features: S3 uploads, durable job storage, automatic `--upgrade`, general audio editing/composition or arbitrary FFmpeg filters, lossy model optimization, and built-in HyperFrames rendering. HyperFrames can be orchestrated externally for an explicitly requested motion workflow. Proposed workflow scripts in older specs are not available unless listed in the actual package scripts/help.
 
 Video covers use the same basename as their MP4: standalone `video.mp4` / `video.webp`, or the normalized source basename in folder deliveries. Cover/image path collisions fail folder preflight before output creation.

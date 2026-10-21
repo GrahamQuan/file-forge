@@ -7,7 +7,7 @@ import { ffmpegLayer, FaviconEngineLive, ImageEngineLive } from "@file-forge/med
 export const MediaLive = Layer.mergeAll(
   ImageEngineLive,
   FaviconEngineLive,
-  ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg"),
+  ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg", process.env.FFPROBE_PATH),
 );
 export const commands = (
   emit: (result: Manifest & { directory?: string }) => Effect.Effect<void>,
@@ -174,7 +174,23 @@ export const commands = (
         yield* emit(result);
       }),
   );
+  const lossless = (kind: "audio" | "model") =>
+    Command.make(kind).pipe(
+      Command.withSubcommands([
+        Command.make("compress", { input: Argument.String("input"), output }, (args) =>
+          Effect.gen(function* () {
+            yield* executeRequest({
+              operation: `${kind}-compress`,
+              input: args.input,
+              output: yield* outputParent(args.output),
+            }).pipe(Effect.flatMap(emit));
+          }),
+        ),
+      ]),
+    );
   return [
+    lossless("audio"),
+    lossless("model"),
     inspect,
     Command.make("favicon").pipe(Command.withSubcommands([favicon])),
     image,

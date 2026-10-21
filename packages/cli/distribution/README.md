@@ -45,3 +45,5 @@ Uploads, durable jobs, automatic updates, and other distribution platforms remai
 The reusable project skill and its copy helper are maintained in the source checkout; runtime
 installation does not copy that skill into projects or register the Codex plugin.
 Third-party licenses are retained alongside the included production dependencies in `runtime/node_modules`.
+
+Audio/music compression is strictly lossless and requires FFprobe (PATH, beside configured FFmpeg, or FFPROBE_PATH). Eligible PCM/FLAC becomes smaller verified FLAC; other inputs retain original bytes. Self-contained GLB 2.0 compression only compacts JSON whitespace; binary data stays unchanged. Both are included in folder processing and use schema-v4 manifests. Existing image/video presets remain lossy.

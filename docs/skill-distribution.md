@@ -2,7 +2,7 @@
 
 The canonical reusable skill lives in [`skills/file-forge`](../skills/file-forge/SKILL.md). After every code change, update this skill and all affected documentation here, then copy it into consuming projects when requested. ProductDesignSkills is a consumer, not a separate source of truth.
 
-This skill is the routing map for prerequisites, runtime/plugin setup and upgrades, images, videos, folders, source-folder renaming, favicons, manifests and troubleshooting. It stops and asks with a proposed solution when required tools, essential information or repairs are missing. No width/height means no resizing.
+This skill is the routing map for prerequisites, runtime/plugin setup and upgrades, images, videos, lossless audio/music and GLB, folders, source-folder renaming, favicons, manifests and troubleshooting. It stops and asks with a proposed solution when required tools, essential information or repairs are missing. No width/height means no resizing.
 
 ## Copy from a source checkout
 

@@ -22,14 +22,16 @@
 
 ## User workflows and skill ownership
 
-- Implemented CLI/MCP operations include inspection, image conversion/compression, video compression with covers, recursive folder compression, explicit source-folder rename preview/apply, favicons, and manifest export. Verify installed help/schemas before assuming a source feature is released.
+- Implemented CLI/MCP operations include inspection, image conversion/compression, video compression with covers, strictly lossless audio/music and GLB JSON optimization, recursive folder compression, explicit source-folder rename preview/apply, favicons, and manifest export. Verify installed help/schemas before assuming a source feature is released.
 - Compression without width or height skips resizing; never restore the removed 512 × 512 fallback. One axis is automatic on the other; two are maximum bounds. Preserve aspect ratio without enlargement. Explicit video resizing rounds down to even dimensions; incompatible original no-resize dimensions fail instead of silently changing.
 - Media operations preserve sources and write new deliveries. `folder rename` / `rename_folders` is the explicit opt-in exception for directory names only: default preview, explicit apply, collision/symlink/traversal checks, receipts outside old/new roots, and no automatic rollback or blind replay. Never infer source-renaming permission from compression.
-- Preserve manifest compatibility: v1 inspection/image/video/export, v2 folder delivery, v3 directory-rename receipts. MCP jobs remain session-local; unknown jobs after reconnect do not prove no output exists. Do not rename the configured MCP workspace root.
+- Preserve manifest compatibility: v1 inspection/image/video/export, v2 folder delivery, v3 directory-rename receipts, v4 audio/model and mixed-folder deliveries. MCP jobs remain session-local; unknown jobs after reconnect do not prove no output exists. Do not rename the configured MCP workspace root.
 - The canonical reusable user skill is `skills/file-forge/`; ProductDesignSkills and other project copies are consumers. Edit the canonical skill and use `pnpm skill:copy --project PATH` after building. A user request to “copy” means create or fully replace the entire target skill from this repository, including removal of stale target files; no merge or extra replacement confirmation is needed. Identical copies are no-ops. Keep recovery backups outside the active skills directory and out of commits. Do not make consumer edits the new source of truth.
 - Keep the compact runtime plugin skill under `packages/file-forge-plugin/skills/file-forge/` consistent with current tools. It is a separate packaged artifact; copying the reusable skill does not install/upgrade the runtime or register the plugin.
 - Preserve the user-facing skill's stop-and-ask behavior for missing tools, unclear essential choices and failed operations: explain the blocker and recommend a concrete solution before requesting a decision. Reuse explicit unchanged authorization. Omitted optional dimensions are not a reason to ask.
-- HyperFrames is an externally orchestrated workflow, not a built-in FileForge command. Do not expose planned S3/audio/GLB/general-composition functions as available CLI tools.
+- HyperFrames is an externally orchestrated workflow, not a built-in FileForge command. Do not expose planned S3/general-composition functions as available CLI tools.
+
+- Audio/model compression is strictly lossless: never silently introduce sample-rate/precision reduction, geometry quantization, texture recompression or animation resampling. Preserve originals when safe optimization does not shrink them and report that outcome. GLB support currently compacts JSON only; do not advertise geometry compression. See `docs/lossless-audio-models.md`.
 
 ## Tests and validation
 

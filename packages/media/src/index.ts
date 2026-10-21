@@ -3,7 +3,13 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import sharp, { type Metadata, type OutputInfo } from "sharp";
 
 export class MediaError extends Data.TaggedError("MediaError")<{
-  readonly code: "INVALID_INPUT" | "IMAGE_FAILED" | "FFMPEG_FAILED" | "FFMPEG_TIMEOUT";
+  readonly code:
+    | "INVALID_INPUT"
+    | "IMAGE_FAILED"
+    | "FFMPEG_FAILED"
+    | "FFMPEG_TIMEOUT"
+    | "FFPROBE_FAILED"
+    | "AUDIO_VERIFICATION_FAILED";
   readonly detail: string;
   readonly cause?: unknown;
 }> {}
@@ -112,10 +118,12 @@ export const processImage = (input: string, output: string, options: ImageOption
     ),
   );
 
-export class FfmpegConfig extends Context.Service<FfmpegConfig, { readonly executable: string }>()(
-  "@file-forge/media/FfmpegConfig",
-) {}
-export const ffmpegLayer = (executable: string) => Layer.succeed(FfmpegConfig, { executable });
+export class FfmpegConfig extends Context.Service<
+  FfmpegConfig,
+  { readonly executable: string; readonly probeExecutable?: string }
+>()("@file-forge/media/FfmpegConfig") {}
+export const ffmpegLayer = (executable: string, probeExecutable?: string) =>
+  Layer.succeed(FfmpegConfig, { executable, probeExecutable });
 /** Internal trusted primitive. CLI/MCP must expose constrained operations, never raw arguments. */
 export const runFfmpeg = (args: readonly string[], options: { timeoutMs?: number } = {}) =>
   Effect.gen(function* () {
@@ -275,3 +283,5 @@ export const compressVideo = (input: string, directory: string, options: Compres
       };
     }),
   );
+
+export { compressAudio, compressGlb, audioExtensions, type LosslessResult } from "./lossless.js";

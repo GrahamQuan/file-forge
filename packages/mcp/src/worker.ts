@@ -24,7 +24,7 @@ const program = Effect.gen(function* () {
       NodeServices.layer,
       ImageEngineLive,
       FaviconEngineLive,
-      ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg"),
+      ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg", process.env.FFPROBE_PATH),
     ),
   ),
 );

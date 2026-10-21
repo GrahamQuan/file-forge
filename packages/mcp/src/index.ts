@@ -17,6 +17,8 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { NodeServices } from "@effect/platform-node";
 import {
   ImageCompressionRequest,
+  AudioCompressionRequest,
+  ModelCompressionRequest,
   VideoCompressionRequest,
   FolderCompressionRequest,
   FolderRenameRequest,
@@ -61,6 +63,20 @@ const tools = Toolkit.make(
     description:
       "Resize and compress one video to MP4 and create a first-frame WebP cover matching the resulting video dimensions. Omitted axes preserve aspect ratio; no size skips resizing and preserves original dimensions. Poll job_status.",
     parameters: submission(VideoCompressionRequest.fields),
+    success,
+    failure,
+  }).annotate(Tool.Strict, true),
+  Tool.make("compress_audio", {
+    description:
+      "Losslessly optimize one audio file. Eligible integer PCM/FLAC becomes smaller sample-verified FLAC; otherwise retain original bytes. No lossy encoding. Poll job_status.",
+    parameters: submission(AudioCompressionRequest.fields),
+    success,
+    failure,
+  }).annotate(Tool.Strict, true),
+  Tool.make("compress_model", {
+    description:
+      "Losslessly compact a self-contained GLB 2.0 JSON chunk. Preserve binary data and decoder requirements; no quantization or texture changes. May retain original bytes. Poll job_status.",
+    parameters: submission(ModelCompressionRequest.fields),
     success,
     failure,
   }).annotate(Tool.Strict, true),
@@ -241,6 +257,8 @@ const handlers = (root: string) =>
         compress_images: submit,
         compress_video: submit,
         compress_folder: submit,
+        compress_audio: submit,
+        compress_model: submit,
         rename_folders: submit,
         generate_favicons: submit,
         export_manifest: submit,

@@ -2,6 +2,9 @@ import { randomUUID, createHash } from "node:crypto";
 import { Effect, FileSystem, Path } from "effect";
 import {
   compressVideo,
+  compressAudio,
+  compressGlb,
+  audioExtensions,
   inspectImage,
   processImage,
   validateCompressionOptions,
@@ -95,7 +98,11 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
               ? "image"
               : videos.has(extension)
                 ? "video"
-                : "unsupported";
+                : audioExtensions.has(extension)
+                  ? "audio"
+                  : extension === ".glb"
+                    ? "model"
+                    : "unsupported";
             const stem = normalize(extension ? name.slice(0, -extension.length) : name);
             const outputExtension =
               kind === "image" ? "webp" : kind === "video" ? "mp4" : normalize(extension);
@@ -104,6 +111,9 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
             yield* reserve(output);
             const cover = kind === "video" ? path.join(target, `${stem}.webp`) : undefined;
             if (cover) yield* reserve(cover);
+            // Reserve both possible audio outcomes before any output is written.
+            if (kind === "audio" && extension !== ".flac")
+              yield* reserve(path.join(target, `${stem}.flac`));
             planned.push({
               asset: { ...asset, kind, size: Number(info.size) },
               relative: output,
@@ -128,7 +138,9 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
     const directory = yield* createDeliveryDirectory(destination, taskId);
     const createdAt = new Date().toISOString();
     const manifest = (): Manifest => ({
-      schemaVersion: 2,
+      schemaVersion: planned.some((p) => p.asset.kind === "audio" || p.asset.kind === "model")
+        ? 4
+        : 2,
       taskId,
       createdAt,
       operation: "folder",
@@ -159,7 +171,36 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
         yield* Effect.scoped(
           Effect.gen(function* () {
             const staging = yield* fs.makeTempDirectoryScoped({ directory, prefix: ".folder-" });
-            if (asset.kind === "video") {
+            if (asset.kind === "audio" || asset.kind === "model") {
+              const result = yield* asset.kind === "audio"
+                ? compressAudio(asset.source, staging)
+                : compressGlb(asset.source, staging);
+              const destination =
+                output.slice(0, -path.extname(output).length) + `.${result.format}`;
+              yield* Effect.uninterruptible(
+                Effect.gen(function* () {
+                  yield* fs.link(result.output, destination);
+                  assets.push({
+                    ...asset,
+                    status: "succeeded",
+                    output: destination,
+                    outputFormat: result.format,
+                    outputSize: result.size,
+                    sizeChange: result.size - asset.size!,
+                    lossless: true,
+                    optimization: result.optimization,
+                    ...("reason" in result && result.reason ? { note: result.reason } : {}),
+                    ...("sampleRate" in result
+                      ? {
+                          sampleRate: result.sampleRate,
+                          channels: result.channels,
+                          bitsPerSample: result.bitsPerSample,
+                        }
+                      : {}),
+                  });
+                }),
+              );
+            } else if (asset.kind === "video") {
               const result = yield* compressVideo(asset.source, staging, validated);
               yield* Effect.uninterruptible(
                 Effect.gen(function* () {

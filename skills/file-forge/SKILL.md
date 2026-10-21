@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Set up FileForge and its Codex plugin, check media-tool prerequisites, and use FileForge to inspect, compress, resize or convert local images, videos and folders, rename explicitly selected source folders, generate favicons, and export delivery manifests. Use for FileForge installation, upgrades, troubleshooting, and supported local media-processing requests.
+description: Set up FileForge and its Codex plugin, check media-tool prerequisites, and use FileForge to inspect, compress, resize or convert local images, videos and folders, losslessly optimize audio/music and GLB models, rename explicitly selected source folders, generate favicons, and export delivery manifests. Use for FileForge installation, upgrades, troubleshooting, and supported local media-processing requests.
 ---
 
 # FileForge
@@ -52,6 +52,8 @@ Example: “I found two folders named assets. Which should I process: the projec
 | Export/re-export manifest and report                     | [Favicons and manifests](references/favicons-manifests.md)     | `export_manifest`                              |
 | Poll/cancel jobs, compare size, explain partial failures | [Execution and results](references/execution.md)               | `job_status`, `job_cancel`; output validation  |
 | Errors, old versions, unavailable workflow               | [Troubleshooting](references/troubleshooting.md)               | Diagnose before retrying                       |
+
+For audio/music or GLB compression, read [lossless audio and models](references/audio-models.md). Use `compress_audio` / `compress_model` or the corresponding CLI command; quality preservation takes priority over size reduction.
 
 ## Shared behavior
 

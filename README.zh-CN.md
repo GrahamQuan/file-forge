@@ -4,7 +4,7 @@
 
 面向用户、脚本和编码智能体的本地媒体处理工具，基于 Sharp 和 FFmpeg，提供 CLI 和本地 MCP 工具。
 
-**源码能力：**已实现图片、视频和文件夹压缩、图片转换、网站图标生成、素材检查、明确的原目录重命名及版本化交付清单。上传、持久任务和自更新尚未实现。已配置 GitHub 自动发布；下载是否可用取决于 main 分支成功运行工作流。
+**源码能力：**已实现图片、视频和文件夹压缩、音频/音乐无损优化及 GLB JSON 压缩、图片转换、网站图标生成、素材检查、明确的原目录重命名及版本化交付清单。上传、持久任务和自更新尚未实现。已配置 GitHub 自动发布；下载是否可用取决于 main 分支成功运行工作流。
 
 也可使用 `folder rename INPUT --renames PLAN.json` 明确重命名原目录：默认预览，添加 `--apply` 后按计划修改根目录或子目录名称，不改变文件内容。详见[用法](docs/usage.md#rename-original-folders-explicitly)。
 
@@ -38,6 +38,10 @@ pnpm --silent file-forge image compress ./assets --width 1200 --height 800 --out
 # Compress a video to MP4 and generate a WebP cover
 pnpm --silent file-forge video compress ./clip.mp4 --width 1280 --height 720 --output ./delivery --json
 
+# Losslessly optimize audio/music or a self-contained GLB
+pnpm --silent file-forge audio compress ./song.wav --output ./delivery --json
+pnpm --silent file-forge model compress ./scene.glb --output ./delivery --json
+
 # Compress a directory into a normalized hierarchy, preserving original dimensions
 pnpm --silent file-forge folder compress ./assets --output ./delivery --json
 
@@ -53,6 +57,8 @@ pnpm --silent file-forge manifest export ./assets --recursive --output ./deliver
 媒体产物和重命名记录写入新的 `file-forge-<id>` 目录，并附带 `manifest.json` 和 `report.md`。媒体处理保留源文件；应用明确的目录重命名计划只改变目录名称。输出目录必须位于输入目录之外。`--json` 将最终结果输出到 stdout，诊断信息输出到 stderr。
 
 默认使用英语。运行 `file-forge config set language zh-CN` 保存中文偏好，或通过 `--language en|zh-CN` 仅覆盖当前调用。
+
+音频/音乐与 GLB 使用严格无损优化，文件夹处理也包含这些类型。音频需要 FFprobe（支持 `FFPROBE_PATH`）；符合条件的整数 PCM/FLAC 仅在验证样本一致且体积更小时输出 FLAC，否则保留原字节。GLB 仅移除 JSON 空白并保留二进制数据，体积可能只减少一点或保持不变。现有图片/视频有损预设不变。详见[策略与支持格式（英文）](docs/lossless-audio-models.md)。
 
 ## Codex 与安装
 

@@ -29,7 +29,7 @@ export const AssetSchema = Schema.Struct({
   source: Schema.String,
   originalName: Schema.String,
   status: Schema.Literals(["inspected", "succeeded", "failed", "skipped"]),
-  kind: Schema.Literals(["image", "video", "unsupported"]),
+  kind: Schema.Literals(["image", "video", "audio", "model", "unsupported"]),
   size: Schema.optional(Schema.Number),
   width: Schema.optional(Schema.Number),
   height: Schema.optional(Schema.Number),
@@ -40,6 +40,12 @@ export const AssetSchema = Schema.Struct({
   outputHeight: Schema.optional(Schema.Number),
   outputFormat: Schema.optional(Schema.String),
   sizeChange: Schema.optional(Schema.Number),
+  lossless: Schema.optional(Schema.Boolean),
+  optimization: Schema.optional(Schema.String),
+  note: Schema.optional(Schema.String),
+  sampleRate: Schema.optional(Schema.Number),
+  channels: Schema.optional(Schema.Number),
+  bitsPerSample: Schema.optional(Schema.Number),
   errorCode: Schema.optional(Schema.String),
 });
 export type Asset = typeof AssetSchema.Type;
@@ -69,6 +75,11 @@ export const FolderRenameEntrySchema = Schema.Struct({
 });
 export const ManifestSchema = Schema.Union([
   LegacyManifestSchema,
+  Schema.Struct({
+    ...LegacyManifestSchema.fields,
+    schemaVersion: Schema.Literal(4),
+    operation: Schema.Literals(["audio", "model", "folder"]),
+  }),
   Schema.Struct({
     ...LegacyManifestSchema.fields,
     schemaVersion: Schema.Literal(2),
@@ -505,6 +516,8 @@ export {
   ImageRequest,
   ImageCompressionRequest,
   VideoCompressionRequest,
+  AudioCompressionRequest,
+  ModelCompressionRequest,
   FolderCompressionRequest,
   FolderRenameRequest,
   FaviconRequest,
@@ -611,3 +624,5 @@ export const compressVideoFile = (
       ),
     );
   });
+
+export { compressLosslessFile } from "./lossless.js";

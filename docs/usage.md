@@ -105,7 +105,7 @@ Once the plugin is loaded, examples are:
 
 The configured root determines what `inputs` and `outputs` refer to. Call `file_forge_info` rather than assuming a machine-specific path. Supply absolute paths inside that root and an explicit output parent to MCP writes.
 
-Use the discovered tool schemas and [plugin skill](../packages/file-forge-plugin/skills/file-forge/SKILL.md). Relevant tools include `inspect_files`, `compress_images`, `compress_video`, `compress_folder`, `rename_folders`, `process_images`, `generate_favicons`, and `export_manifest`. Supply a unique `requestId`; poll `job_status` with that ID until terminal. Use `job_cancel` for cancellation and continue polling until cleanup finishes.
+Use the discovered tool schemas and [plugin skill](../packages/file-forge-plugin/skills/file-forge/SKILL.md). Relevant tools include `inspect_files`, `compress_images`, `compress_video`, `compress_audio`, `compress_model`, `compress_folder`, `rename_folders`, `process_images`, `generate_favicons`, and `export_manifest`. Supply a unique `requestId`; poll `job_status` with that ID until terminal. Use `job_cancel` for cancellation and continue polling until cleanup finishes.
 
 Only one job runs at a time. Records last for the current MCP session, with up to 128 retained jobs. Reconnecting loses those records; `UNKNOWN_JOB` is not proof that no files were written. Inspect known destinations before retrying. Never automatically replay an uncertain write through CLI fallback.
 
@@ -149,3 +149,12 @@ file-forge folder rename "/absolute/Example.COM" --renames "/absolute/plan.json"
 ```
 
 The first command writes a preview receipt; the second applies the explicit mapping. Custom names are preserved exactly. Check current names between preview and apply. No directory merging, overwriting, traversal or symlink paths are allowed. Keep the tree free of concurrent edits while applying. Nested changes run before root changes. On failure, later entries remain planned; completed changes remain and the schema-v3 receipt records current locations. Do not retry blindly or assume rollback. Receipt output must be outside both the original and renamed root. MCP `rename_folders` takes `operation: "folder-rename"`, `input`, `renames`, `output`, optional `apply`, and a unique `requestId`. It cannot rename its configured workspace root itself. Existing content references to renamed folders are not rewritten. These commands require the updated source build until a compatible release is published.
+
+## Lossless audio/music and GLB
+
+```sh
+file-forge audio compress "/absolute/song.wav" --output "/absolute/delivery" --json
+file-forge model compress "/absolute/scene.glb" --output "/absolute/delivery" --json
+```
+
+Quality is strictly preserved. Eligible integer PCM/FLAC becomes sample-verified FLAC only when smaller; other audio retains its original bytes. Audio needs FFprobe. GLB support compacts JSON whitespace only, retaining all binary data and required extensions. It may save little or nothing. Folder compression includes these types automatically; its width/height/quality options still apply only to images/videos. See [formats, verification and limitations](lossless-audio-models.md). Results use schema v4 and explicitly report `original-retained` where appropriate.

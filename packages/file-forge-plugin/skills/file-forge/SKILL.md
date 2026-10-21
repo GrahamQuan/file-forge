@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Inspect local image assets, compress folders, images and videos with first-frame covers, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Use when the user requests these operations on existing local files. Does not generate new artwork or upload files.
+description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Use when the user requests these operations on existing local files. Does not generate new artwork or upload files.
 ---
 
 # FileForge
@@ -103,3 +103,7 @@ formats, persistent jobs, or self-update are implemented. Do not invent tools or
 Use `rename_folders` (`operation: "folder-rename"`) or `folder rename INPUT --renames PLAN.json` only when the user requests changing original directory names. The plan is an array of `{ "path": "relative/subfolder", "name": "desired-name" }`; `path: "."` selects the input root. Custom names are exact; derive lowercase/hyphen names only when requested. Ask which root/subfolders and names when unclear. Preview first (omit apply), show mappings, and use `apply: true` / `--apply` only for the user's authorized mapping. Reuse explicit authorization; do not ask again for settled names. This does not rename files or compress media. Default compression still creates a new folder. Receipt output must be outside both old and new source roots. MCP cannot rename its configured workspace root. On collision/failure stop, preserve completed renames, show receipt current paths and ask with a proposed solution. Never retry the full plan blindly.
 
 Video covers share the output video basename, with `.webp` instead of `.mp4` and no `-cover` suffix. Standalone compression produces `video.mp4` and `video.webp`; folder compression uses the normalized source basename. If another input would produce the same cover path, folder preflight rejects the collision without overwriting files.
+
+## Lossless audio and models
+
+Use `compress_audio` (`operation: "audio-compress"`) and `compress_model` (`operation: "model-compress"`) with `input`, `output` and `requestId`, then poll. Audio requires FFprobe, configurable through `FFPROBE_PATH`. Eligible 16/24-bit integer PCM/FLAC becomes smaller sample-verified FLAC; other encodings, extra streams, or non-beneficial candidates retain original bytes. GLB 2.0 optimization only compacts JSON whitespace and preserves binary data and decoder requirements; external-resource models are rejected. No lossy model/audio options exist. Folder processing dispatches both automatically, independently of width/height/quality. Read schema-v4 `lossless`, `optimization`, `note` and byte sizes; explicitly report `original-retained` with zero savings. Mixed-folder images/videos still use existing lossy presets.

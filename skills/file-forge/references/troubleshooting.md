@@ -19,6 +19,8 @@ The actions below are diagnostic steps and proposed solutions, not automatic rep
 
 After a failed install/repair, inspect the actual error and existing state. Explain the diagnosed cause and recommended fix; ask before repair or retry. Retry only after the user’s decision and a relevant change in conditions. Preserve previous builds/configuration and stop with a concrete blocker rather than looping installations.
 
-FileForge does not currently expose S3 upload, persistent jobs, arbitrary FFmpeg filters, a HyperFrames renderer, GLB optimization, general audio editing or automatic self-update through its CLI/MCP. Existing lower-level media-library functions are not necessarily CLI features. Verify future versions through live schemas/help before expanding this list. External tools may be orchestrated for an explicitly requested workflow, but label them separately.
+FileForge does not currently expose S3 upload, persistent jobs, arbitrary FFmpeg filters, a HyperFrames renderer, lossy GLB optimization, general audio editing or automatic self-update through its CLI/MCP. Existing lower-level media-library functions are not necessarily CLI features. Verify future versions through live schemas/help before expanding this list. External tools may be orchestrated for an explicitly requested workflow, but label them separately.
 
 Language commands are `file-forge config get language`, `file-forge config set language en|zh-CN`, and one-shot `--language en|zh-CN`. Prefer a one-shot override for a single task. Machine JSON keys, error codes and tool schemas remain English.
+
+For lossless audio/model tools, see [audio and models](audio-models.md). `FFPROBE_FAILED` requires an available matching FFprobe path; `AUDIO_VERIFICATION_FAILED` means no candidate was delivered because exact sample/property preservation could not be established. Diagnose and ask before retrying or changing routes. `original-retained` is successful with zero savings, not a tool failure.

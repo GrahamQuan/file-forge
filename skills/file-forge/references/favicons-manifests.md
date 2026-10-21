@@ -29,3 +29,5 @@ file-forge manifest export --manifest "/absolute/manifest.json" --output "/absol
 `export_manifest` accepts `operation: "export"`, `output`, a unique `requestId`, and exactly one of `files: [...]` or `manifest: "/absolute/manifest.json"`. Optional `recursive` and `includePaths` are booleans. File inspection/export does not recompress assets or upload them. Re-export preserves recorded mappings; it does not copy all referenced outputs into the new report directory or revalidate remote state.
 
 The versioned manifest contains statuses and source/output mappings; Markdown is an English report. Absolute paths are present in manifest mappings; `includePaths` controls report presentation, not manifest anonymization. Review before sharing. Do not claim the generic report matches a project's specialized handoff schema without comparing that schema.
+
+Readers accept v1/v2/v3 and v4 audio/model deliveries or mixed folders. Audio/model assets report lossless optimization and retained-original outcomes separately; do not infer savings from success alone.

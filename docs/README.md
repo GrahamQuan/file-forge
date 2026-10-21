@@ -4,6 +4,7 @@ Use current code/help and these guides to determine what is implemented. Older s
 
 - [Current capabilities](current-capabilities.md): CLI/MCP operation matrix, dimensional rules, source-renaming exception, manifest versions and remaining work.
 - [Installation and Codex setup](installation.md): prerequisites, runtime/plugin installation, verification, upgrade and rollback.
+- [Lossless audio/music and GLB](lossless-audio-models.md): supported formats, preservation checks, unchanged results and schema-v4 manifests.
 - [Usage](usage.md): actual command examples, folder deliveries, source-folder rename plans and result reporting.
 - [Skill distribution](skill-distribution.md): canonical skill ownership and copying it into projects such as ProductDesignSkills.
 - [Reusable FileForge skill](../skills/file-forge/SKILL.md): routing map with focused references and stop-and-ask behavior.

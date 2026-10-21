@@ -1,3 +1,4 @@
+import { ffmpeg, makeGlb, glbContent } from "./lossless-fixtures.js";
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
@@ -152,8 +153,10 @@ test("plugin-backed MCP executes all local operations, scopes paths, deduplicate
     await initialize(client);
     const list = await client.request("tools/list");
     assert.deepEqual(list.result.tools.map((tool) => tool.name).sort(), [
+      "compress_audio",
       "compress_folder",
       "compress_images",
+      "compress_model",
       "compress_video",
       "export_manifest",
       "file_forge_info",
@@ -530,6 +533,59 @@ test("MCP previews and applies directory renames while protecting its configured
     assert.equal(applied.status, "succeeded", JSON.stringify(applied));
     assert.deepEqual(await readdir(join(root, "renamed-root")), ["sub-folder"]);
     assert.ok(dead(applied.workerPid));
+  } finally {
+    if (client) await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("MCP runs lossless audio and model operations through scoped workers", async () => {
+  const root = await mkdtemp(join(tmpdir(), "file-forge-lossless-mcp-"));
+  let client;
+  try {
+    const fs = await import("node:fs/promises");
+    const model = join(root, "scene.glb");
+    const original = await makeGlb();
+    await fs.writeFile(model, original);
+    const audio = join(root, "song.wav");
+    ffmpeg("-f", "lavfi", "-i", "sine=duration=0.2", "-c:a", "pcm_s16le", audio);
+    client = await connect(root);
+    await initialize(client);
+    for (const [kind, input] of [
+      ["audio", audio],
+      ["model", model],
+    ]) {
+      decode(
+        await call(client, `compress_${kind}`, {
+          requestId: kind,
+          operation: `${kind}-compress`,
+          input,
+          output: join(root, "out"),
+        }),
+      );
+      const job = await terminal(client, kind);
+      assert.equal(job.status, "succeeded", JSON.stringify(job));
+      assert.equal(job.result.schemaVersion, 4);
+      assert.equal(job.result.assets[0].lossless, true);
+      if (kind === "model")
+        assert.deepEqual(
+          glbContent(await readFile(job.result.assets[0].output)),
+          glbContent(original),
+        );
+      else assert.equal(job.result.assets[0].optimization, "lossless-flac");
+      assert.ok(dead(job.workerPid));
+    }
+    assert.equal(
+      decode(
+        await call(client, "compress_model", {
+          requestId: "outside-model",
+          operation: "model-compress",
+          input: "../outside.glb",
+          output: root,
+        }),
+      ).code,
+      "PATH_OUTSIDE_ROOT",
+    );
   } finally {
     if (client) await client.close();
     await rm(root, { recursive: true, force: true });
