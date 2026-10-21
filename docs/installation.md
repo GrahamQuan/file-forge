@@ -121,6 +121,8 @@ CLI processing or a separately spawned MCP test does not prove the current chat 
 
 ## Upgrade and rollback
 
+The reusable skill supports requests such as “upgrade FileForge to the latest stable release”. Its [upgrade workflow](../skills/file-forge/references/upgrade.md) checks the current installation, resolves verified release assets, updates the runtime and matching installed plugin, and verifies their versions separately. An explicit upgrade request supplies authorization; missing prerequisites or a materially different repair still require a focused question. “Upgrade the skill” refreshes instructions only.
+
 Download and verify the newer runtime and matching plugin from one release. Run the new archive's installer using the same prefix. It activates the new build and preserves prior builds. Then update the plugin through the supported Codex flow, preserving its local environment configuration, and reconnect MCP after active jobs finish.
 
 Automatic `file-forge --upgrade` is not implemented. Do not claim that downloading an archive updates the active runtime or plugin. Verify the version and tool connection after installing.

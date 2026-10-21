@@ -21,6 +21,8 @@ The managed installer preserves earlier builds under `~/.local/lib/file-forge` a
 
 ## Upgrade
 
+For upgrade intent, authorization, target selection and completion checks, follow the [upgrade workflow](upgrade.md).
+
 Inspect current CLI and connected MCP versions first. Wait for active jobs before switching builds. Download, verify and install the desired runtime using the same prefix, then update the matching plugin's owned marketplace source while preserving machine configuration. Use the installed Codex CLI's supported refresh/install flow; verify actual versions after reconnecting. `file-forge --upgrade` is not implemented in the verified version.
 
 Do not remove/reinstall a working plugin repeatedly to force discovery. A reconnect or fresh chat may be necessary. Do not delete retained runtime builds or user outputs.

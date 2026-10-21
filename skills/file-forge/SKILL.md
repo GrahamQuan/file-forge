@@ -11,7 +11,7 @@ Use this as the entry map. Read only the references needed for the current reque
 
 ## Start here
 
-1. Identify the user's files, desired operation and output location. Reuse established choices.
+1. Identify the desired operation. For setup or upgrade requests, identify the installation or skill copy; media files are not required. For processing, identify the files and output location. Reuse established choices.
 2. Read [readiness](references/readiness.md). Check the executable, dependencies, actual capabilities and plugin connection once per environment; reuse verified results until something changes.
 3. If a required tool or plugin is missing, incompatible or broken, follow **Stop and ask** below before installing, repairing, upgrading or changing execution routes. Use [runtime installation](references/runtime-installation.md) and [plugin setup](references/codex-plugin.md) to prepare a concrete solution.
 4. Select the operation below. Prefer connected FileForge tools. If the plugin needs a new chat, explain that and ask whether to reconnect or use the CLI; do not silently switch routes.
@@ -40,7 +40,8 @@ Example: “I found two folders named assets. Which should I process: the projec
 | User intent                                              | Read                                                           | Route                                         |
 | -------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------- |
 | Check prerequisites, version, supported features         | [Readiness](references/readiness.md)                           | CLI help/version; `file_forge_info`           |
-| Download, install, upgrade or roll back FileForge        | [Runtime installation](references/runtime-installation.md)     | Verified matching release assets              |
+| Upgrade FileForge runtime/plugin or refresh this skill | [Upgrade workflow](references/upgrade.md) | Check, update and verify the selected artifact |
+| Download, install or roll back FileForge        | [Runtime installation](references/runtime-installation.md)     | Verified matching release assets              |
 | Install/enable Codex plugin; tools are missing           | [Codex plugin](references/codex-plugin.md)                     | Local marketplace and connection checks       |
 | Inspect metadata without processing                      | [Images](references/images.md)                                 | `inspect_files` / `inspect`                   |
 | Compress, resize or convert images                       | [Images](references/images.md)                                 | `compress_images` or `process_images`         |
