@@ -37,21 +37,21 @@ Example: “I found two folders named assets. Which should I process: the projec
 
 ## Operation map
 
-| User intent                                              | Read                                                           | Route                                         |
-| -------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------- |
-| Check prerequisites, version, supported features         | [Readiness](references/readiness.md)                           | CLI help/version; `file_forge_info`           |
-| Upgrade FileForge runtime/plugin or refresh this skill | [Upgrade workflow](references/upgrade.md) | Check, update and verify the selected artifact |
-| Download, install or roll back FileForge        | [Runtime installation](references/runtime-installation.md)     | Verified matching release assets              |
-| Install/enable Codex plugin; tools are missing           | [Codex plugin](references/codex-plugin.md)                     | Local marketplace and connection checks       |
-| Inspect metadata without processing                      | [Images](references/images.md)                                 | `inspect_files` / `inspect`                   |
-| Compress, resize or convert images                       | [Images](references/images.md)                                 | `compress_images` or `process_images`         |
-| Compress video; create first-frame cover                 | [Video](references/video.md)                                   | `compress_video`                              |
-| Process an entire directory into a new delivery folder   | [Folders](references/folders.md)                               | `compress_folder`                             |
-| Rename original root/subfolders as requested             | [Source-folder renaming](references/source-folder-renaming.md) | `rename_folders` / `folder rename`            |
-| Generate ICO/PNG/traced-SVG favicon set                  | [Favicons and manifests](references/favicons-manifests.md)     | `generate_favicons`                           |
-| Export/re-export manifest and report                     | [Favicons and manifests](references/favicons-manifests.md)     | `export_manifest`                             |
-| Poll/cancel jobs, compare size, explain partial failures | [Execution and results](references/execution.md)               | `job_status`, `job_cancel`; output validation |
-| Errors, old versions, unavailable workflow               | [Troubleshooting](references/troubleshooting.md)               | Diagnose before retrying                      |
+| User intent                                              | Read                                                           | Route                                          |
+| -------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------- |
+| Check prerequisites, version, supported features         | [Readiness](references/readiness.md)                           | CLI help/version; `file_forge_info`            |
+| Upgrade FileForge runtime/plugin or refresh this skill   | [Upgrade workflow](references/upgrade.md)                      | Check, update and verify the selected artifact |
+| Download, install or roll back FileForge                 | [Runtime installation](references/runtime-installation.md)     | Verified matching release assets               |
+| Install/enable Codex plugin; tools are missing           | [Codex plugin](references/codex-plugin.md)                     | Local marketplace and connection checks        |
+| Inspect metadata without processing                      | [Images](references/images.md)                                 | `inspect_files` / `inspect`                    |
+| Compress, resize or convert images                       | [Images](references/images.md)                                 | `compress_images` or `process_images`          |
+| Compress video; create first-frame cover                 | [Video](references/video.md)                                   | `compress_video`                               |
+| Process an entire directory into a new delivery folder   | [Folders](references/folders.md)                               | `compress_folder`                              |
+| Rename original root/subfolders as requested             | [Source-folder renaming](references/source-folder-renaming.md) | `rename_folders` / `folder rename`             |
+| Generate ICO/PNG/traced-SVG favicon set                  | [Favicons and manifests](references/favicons-manifests.md)     | `generate_favicons`                            |
+| Export/re-export manifest and report                     | [Favicons and manifests](references/favicons-manifests.md)     | `export_manifest`                              |
+| Poll/cancel jobs, compare size, explain partial failures | [Execution and results](references/execution.md)               | `job_status`, `job_cancel`; output validation  |
+| Errors, old versions, unavailable workflow               | [Troubleshooting](references/troubleshooting.md)               | Diagnose before retrying                       |
 
 ## Shared behavior
 
