@@ -76,7 +76,7 @@ test("audio and GLB CLI/folder deliveries preserve quality and report unchanged 
       "-i",
       "anullsrc=r=48000:cl=mono",
       "-t",
-      "0.0001",
+      "0.01",
       "-c:a",
       "pcm_s16le",
       tiny,
