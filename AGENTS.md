@@ -78,3 +78,5 @@
 - Successful GLB processing automatically generates six default 16:9 quality-80 WebP posters, including in folders. Keep model bytes lossless, poster assets separate, and retain the model with partial status if rendering fails. Use schema v6 for combined deliveries; preserve older manifest readers.
 
 - Keep clarity compression opt-in via shared CLI/MCP preset validation. Standard stays image quality 80 / H.264 CRF 23 medium; clarity uses quality 90 / WebP effort 6 + smart subsampling / CRF 18 slow. Explicit quality overrides images/covers only. Preserve sizing behavior and record effective settings; do not claim measured quality guarantees or optimal file size.
+
+- Folder media selection supports all/images/videos; copy excluded regular files unchanged while retaining naming and collision rules. Only selected GLBs generate posters. Chat preferences are agent context, never persisted configuration; explicit request values override earlier compatible preferences, and new chats reset.

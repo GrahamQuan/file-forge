@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve, basename } from "node:path";
 import sharp from "sharp";
 
 test("folder CLI preserves sources, normalizes hierarchy, handles partial failure and rejects collisions", async () => {
@@ -44,6 +44,61 @@ test("folder CLI preserves sources, normalizes hierarchy, handles partial failur
     );
     assert.equal(made.status, 0, made.stderr);
     const videoOriginal = await readFile(video);
+    const untouchedModel = join(nested, "Untouched.glb");
+    await writeFile(untouchedModel, "not decoded when excluded");
+    for (const selection of ["images", "videos"]) {
+      const result = cli(
+        "folder",
+        "compress",
+        input,
+        "--media",
+        selection,
+        "--width",
+        "512",
+        "--output",
+        join(root, "selected"),
+      );
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      const manifest = JSON.parse(result.stdout);
+      assert.equal(manifest.parameters.image.media, selection);
+      const selected = manifest.assets.find(
+        (a) =>
+          a.originalName === basename(selection === "images" ? image : video) &&
+          !a.assetId.endsWith("-cover"),
+      );
+      assert.equal(selected.outputWidth, 512);
+      assert.equal(selected.outputHeight, selection === "images" ? 256 : 384);
+      const excludedSource = selection === "images" ? video : image;
+      const excluded = manifest.assets.find((a) => a.originalName === basename(excludedSource));
+      assert.deepEqual(await readFile(excluded.output), await readFile(excludedSource));
+      assert.ok(excluded.output.endsWith(selection === "images" ? ".mp4" : ".png"));
+      assert.deepEqual(
+        await readFile(
+          manifest.assets.find((a) => a.originalName === basename(untouchedModel)).output,
+        ),
+        await readFile(untouchedModel),
+      );
+      assert.equal(manifest.assets.filter((a) => a.view).length, 0);
+      assert.equal(
+        manifest.assets.filter((a) => a.assetId.endsWith("-cover")).length,
+        selection === "videos" ? 1 : 0,
+      );
+    }
+    assert.equal(
+      cli(
+        "folder",
+        "compress",
+        input,
+        "--media",
+        "audio",
+        "--output",
+        join(root, "invalid-selection"),
+      ).status,
+      2,
+    );
+    assert.ok(!(await readdir(root)).includes("invalid-selection"));
+    await rm(untouchedModel);
+
     for (const [args, dimensions] of [
       [[], [1200, 600]],
       [

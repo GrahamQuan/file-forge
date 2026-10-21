@@ -30,11 +30,18 @@ const normalize = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 const invalid = (detail: string) => new OperationError({ code: "INVALID_INPUT", detail });
-type Planned = { asset: Asset; relative: string; cover?: string };
+type Planned = { asset: Asset; relative: string; cover?: string; selected: boolean };
 
 /** Plan every destination before creating output, then process serially in scoped staging. */
-export const compressFolder = (input: string, options: CompressionOptions, outputParent: string) =>
+export const compressFolder = (
+  input: string,
+  options: CompressionOptions,
+  outputParent: string,
+  media: "all" | "images" | "videos" = "all",
+) =>
   Effect.gen(function* () {
+    if (!["all", "images", "videos"].includes(media))
+      return yield* invalid("Invalid media selection");
     const validated = yield* validateCompressionOptions(options);
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -106,20 +113,30 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
                   : extension === ".glb"
                     ? "model"
                     : "unsupported";
+            const selected =
+              media === "all" ||
+              (media === "images" && kind === "image") ||
+              (media === "videos" && kind === "video");
             const stem = normalize(extension ? name.slice(0, -extension.length) : name);
             const outputExtension =
-              kind === "image" ? "webp" : kind === "video" ? "mp4" : normalize(extension);
+              selected && kind === "image"
+                ? "webp"
+                : selected && kind === "video"
+                  ? "mp4"
+                  : normalize(extension);
             if (!stem) return yield* invalid("File name has no ASCII letters or digits");
             const output = path.join(target, stem + (outputExtension ? `.${outputExtension}` : ""));
             yield* reserve(output);
-            const cover = kind === "video" ? path.join(target, `${stem}.webp`) : undefined;
+            const cover =
+              selected && kind === "video" ? path.join(target, `${stem}.webp`) : undefined;
             if (cover) yield* reserve(cover);
             // Reserve both possible audio outcomes before any output is written.
-            if (kind === "audio" && extension !== ".flac")
+            if (selected && kind === "audio" && extension !== ".flac")
               yield* reserve(path.join(target, `${stem}.flac`));
             planned.push({
               asset: { ...asset, kind, size: Number(info.size) },
               relative: output,
+              selected,
               ...(cover ? { cover } : {}),
             });
           } else assets.push({ ...asset, status: "skipped", errorCode: "UNSUPPORTED_FILE" });
@@ -133,7 +150,7 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
       );
     yield* walk(source, rootName);
     if (
-      planned.some(({ asset }) => asset.kind === "video") &&
+      planned.some(({ asset, selected }) => selected && asset.kind === "video") &&
       ((validated.width ?? 2) < 2 || (validated.height ?? 2) < 2)
     )
       return yield* invalid("Video dimensions must be at least 2 pixels");
@@ -141,7 +158,7 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
     const directory = yield* createDeliveryDirectory(destination, taskId);
     const createdAt = new Date().toISOString();
     const manifest = (): Manifest => ({
-      schemaVersion: planned.some((p) => p.asset.kind === "model")
+      schemaVersion: planned.some((p) => p.selected && p.asset.kind === "model")
         ? 6
         : planned.some((p) => p.asset.kind === "audio")
           ? 4
@@ -168,6 +185,7 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
             Object.entries(validated).filter(([, value]) => value !== undefined),
           ),
           namingPolicy: 1,
+          media,
           ...(validated.preset === "clarity"
             ? { quality: imageQuality(validated), effort: 6, smartSubsample: "true" }
             : {}),
@@ -184,7 +202,23 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
         yield* Effect.scoped(
           Effect.gen(function* () {
             const staging = yield* fs.makeTempDirectoryScoped({ directory, prefix: ".folder-" });
-            if (asset.kind === "audio" || asset.kind === "model") {
+            if (!item.selected) {
+              const temp = path.join(staging, "copy");
+              yield* fs.copyFile(asset.source, temp);
+              yield* Effect.uninterruptible(
+                Effect.gen(function* () {
+                  yield* fs.link(temp, output);
+                  assets.push({
+                    ...asset,
+                    status: "succeeded",
+                    output,
+                    outputSize: asset.size,
+                    sizeChange: 0,
+                    note: "Not selected; copied unchanged",
+                  });
+                }),
+              );
+            } else if (asset.kind === "audio" || asset.kind === "model") {
               const result = yield* asset.kind === "audio"
                 ? compressAudio(asset.source, staging)
                 : compressGlb(asset.source, staging);

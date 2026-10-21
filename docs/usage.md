@@ -174,3 +174,5 @@ Describe the result in chat, for example: “Crop this image to the specified re
 Each 3D poster is rendered to a temporary PNG and automatically processed through the shared image workflow before delivery: quality-80 lossy WebP, no additional resizing, output validation and exclusive publication. Ordinary image compression keeps its existing defaults; no manual second compression pass is needed.
 
 Opt in to `--preset clarity` for higher image/video detail retention with compression. Defaults are unchanged; see [clarity preset](clarity-preset.md) for settings, overrides and tradeoffs.
+
+Folder processing supports `--media all|images|videos`; non-selected files are copied unchanged. See [media selection and chat preferences](media-selection.md).

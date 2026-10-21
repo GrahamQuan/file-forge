@@ -64,6 +64,7 @@ export const ModelPostersRequest = Schema.Struct({
 });
 export const FolderCompressionRequest = Schema.Struct({
   operation: Schema.Literal("folder-compress"),
+  media: Schema.optional(Schema.Literals(["all", "images", "videos"])),
   input: text,
   options: CompressionOptionsSchema,
   output: text,
@@ -149,7 +150,7 @@ export const executeRequest = (input: unknown) =>
       case "folder-rename":
         return yield* renameFolders(request.input, request.renames, request.output, request.apply);
       case "folder-compress":
-        return yield* compressFolder(request.input, request.options, request.output);
+        return yield* compressFolder(request.input, request.options, request.output, request.media);
       case "video-compress":
         return yield* compressVideoFile(request.input, request.options, request.output);
       case "inspect":

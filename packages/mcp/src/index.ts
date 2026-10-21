@@ -90,7 +90,7 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("compress_folder", {
     description:
-      "Recursively compress a folder into a new normalized hierarchy. Optional preset clarity applies to images/videos and video covers. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional width/height limits preserve image/video ratio; no size preserves original dimensions. Every processed GLB also generates six default 16:9 quality-80 WebP posters using local Chrome; failed posters retain the model with partial status. Poll job_status.",
+      "Recursively compress a folder into a new normalized hierarchy. media selects all (default), images or videos; excluded regular files retain their bytes and format. Optional preset clarity applies to images/videos and video covers. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional width/height limits preserve image/video ratio; no size preserves original dimensions. Every processed GLB also generates six default 16:9 quality-80 WebP posters using local Chrome; failed posters retain the model with partial status. Poll job_status.",
     parameters: submission(FolderCompressionRequest.fields),
     success,
     failure,

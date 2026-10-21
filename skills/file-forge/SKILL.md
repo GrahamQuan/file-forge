@@ -58,6 +58,8 @@ For audio/music compression, read [audio and music](references/audio.md) and use
 
 ## Shared behavior
 
+- Support one selected file, a whole folder, or only folder images/videos (see folders reference). Remember explicit processing preferences only in this chat; explicit new choices win, new chats reset, and no global configuration is written. Input paths are task-specific.
+
 - When the user opts into clearer compressed images/videos, use the `clarity` preset described in the image/video/folder references. Keep standard compression as the default; disclose that clarity is still lossy and can be slower or larger.
 
 - Built-in compression defaults below do not override an explicit custom crop, resize, canvas, format or editing request. Custom work follows its own quality-first validation and delivery rules.

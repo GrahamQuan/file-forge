@@ -77,9 +77,15 @@ export const commands = (
         height: Flag.Int("height").pipe(Flag.optional),
         quality: Flag.Int("quality").pipe(Flag.optional),
         preset: Flag.String("preset").pipe(Flag.optional),
+        media: Flag.String("media").pipe(Flag.optional),
       },
       (args) =>
         Effect.gen(function* () {
+          if (kind !== "folder" && Option.isSome(args.media))
+            return yield* new OperationError({
+              code: "INVALID_INPUT",
+              detail: "Media selection is for folders",
+            });
           if (kind !== "image" && args.files.length !== 1)
             return yield* new OperationError({
               code: "INVALID_INPUT",
@@ -87,6 +93,7 @@ export const commands = (
             });
           const result = yield* executeRequest({
             operation: `${kind}-compress`,
+            ...(Option.isSome(args.media) ? { media: args.media.value } : {}),
             ...(kind !== "image"
               ? { input: args.files[0] }
               : { files: args.files, recursive: args.recursive }),

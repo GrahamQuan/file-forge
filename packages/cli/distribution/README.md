@@ -57,3 +57,5 @@ The companion skill can also choose direct Sharp/FFmpeg processing for requests 
 GLB compression automatically generates six default 16:9 posters through the standard image workflow. Combined model/folder deliveries use manifest v6; poster failures retain the processed model and report partial status. Poster-only commands still support custom ratios and sizes.
 
 Image, video and folder compression support `--preset clarity`: image/cover quality 90 (WebP effort 6 and smart subsampling), video CRF 18 with slow encoding. The standard defaults remain quality 80 / CRF 23 medium. Explicit quality overrides images/covers only. Clarity is lossy, may take longer and produce larger files, and does not change dimensions unless requested.
+
+Select a single file with its media command, or use `folder compress PATH --media videos --width 512` to resize only videos recursively. `--media images` selects images; omission processes all supported media. Other files retain their bytes/format in the normalized output copy. Codex remembers settings only within the current chat; new chats start with normal defaults.
