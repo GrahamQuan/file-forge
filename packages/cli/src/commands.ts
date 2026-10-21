@@ -42,6 +42,7 @@ export const commands = (
       height: Flag.Int("height").pipe(Flag.optional),
       quality: Flag.Int("quality").pipe(Flag.optional),
       format: Flag.String("format").pipe(Flag.optional),
+      preset: Flag.String("preset").pipe(Flag.optional),
     },
     (args) =>
       Effect.gen(function* () {
@@ -49,9 +50,9 @@ export const commands = (
         yield* progress;
         // Shared core runtime schema validates the untrusted CLI format and numeric values.
         const options = Object.fromEntries(
-          ["width", "height", "quality", "format"].flatMap((key) => {
+          ["width", "height", "quality", "format", "preset"].flatMap((key) => {
             const value: Option.Option<string | number> =
-              args[key as "width" | "height" | "quality" | "format"];
+              args[key as "width" | "height" | "quality" | "format" | "preset"];
             return Option.isSome(value) ? [[key, value.value]] : [];
           }),
         );
@@ -74,7 +75,8 @@ export const commands = (
         recursive,
         width: Flag.Int("width").pipe(Flag.optional),
         height: Flag.Int("height").pipe(Flag.optional),
-        quality: Flag.Int("quality").pipe(Flag.withDefault(80)),
+        quality: Flag.Int("quality").pipe(Flag.optional),
+        preset: Flag.String("preset").pipe(Flag.optional),
       },
       (args) =>
         Effect.gen(function* () {
@@ -91,7 +93,8 @@ export const commands = (
             options: {
               ...(Option.isSome(args.width) ? { width: args.width.value } : {}),
               ...(Option.isSome(args.height) ? { height: args.height.value } : {}),
-              quality: args.quality,
+              ...(Option.isSome(args.quality) ? { quality: args.quality.value } : {}),
+              ...(Option.isSome(args.preset) ? { preset: args.preset.value } : {}),
             },
             output: yield* outputParent(args.output),
           });

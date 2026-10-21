@@ -3,6 +3,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { Cause, Data, Effect, Exit, FileSystem, Option, Path, Schema } from "effect";
 import {
   compressVideo,
+  imageQuality,
+  videoEncoding,
   validateCompressionOptions,
   type CompressionOptions,
   renderFavicons,
@@ -402,9 +404,19 @@ export const processImages = (
       status: status(assets),
       parameters: {
         recursive,
-        image: Object.fromEntries(
-          Object.entries(validated).filter(([, value]) => value !== undefined),
-        ),
+        image: {
+          ...Object.fromEntries(
+            Object.entries(validated).filter(([, value]) => value !== undefined),
+          ),
+          ...(validated.preset === "clarity"
+            ? {
+                quality: imageQuality(validated),
+                ...((validated.format ?? "webp") === "webp"
+                  ? { effort: 6, smartSubsample: "true" }
+                  : {}),
+              }
+            : {}),
+        },
       },
       assets: [...assets],
     });
@@ -591,8 +603,8 @@ export const compressVideoFile = (
           ...Object.fromEntries(
             Object.entries(validated).filter(([, value]) => value !== undefined),
           ),
-          coverQuality: validated.quality ?? 80,
-          crf: 23,
+          coverQuality: imageQuality(validated),
+          ...videoEncoding(validated),
         },
       },
       assets: [

@@ -42,3 +42,5 @@ Video covers use the same basename as their MP4: standalone `video.mp4` / `video
 The skill also supports [custom Sharp/FFmpeg processing](custom-processing.md) through authorized host tools. Codex chooses this route when built-in presets do not fit. This extends the skill’s workflows, not the CLI/MCP command schema; direct jobs have their own process tracking and output verification.
 
 Each 3D poster is rendered to a temporary PNG and automatically processed through the shared image workflow before delivery: quality-80 lossy WebP, no additional resizing, output validation and exclusive publication. Ordinary image compression keeps its existing defaults; no manual second compression pass is needed.
+
+Opt in to `--preset clarity` for higher image/video detail retention with compression. Defaults are unchanged; see [clarity preset](clarity-preset.md) for settings, overrides and tradeoffs.

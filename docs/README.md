@@ -13,3 +13,5 @@ Use current code/help and these guides to determine what is implemented. Older s
 - [Packaged plugin skill](../packages/file-forge-plugin/skills/file-forge/SKILL.md): compact instructions shipped with the plugin.
 
 For development rules read [AGENTS.md](../AGENTS.md); for task contracts use the applicable spec. Folder processing and source renaming follow the newer [folder contract](../specs/20261021-folder-processing/TECH.md) and [rename contract](../specs/20261021-source-folder-renaming/TECH.md), which supersede conflicting original assumptions. Historical validation counts and release statements describe their milestone, not necessarily the current checkout or installed build.
+
+Opt in to `--preset clarity` for higher image/video detail retention with compression. Defaults are unchanged; see [clarity preset](clarity-preset.md) for settings, overrides and tradeoffs.

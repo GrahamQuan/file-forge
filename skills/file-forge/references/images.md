@@ -23,3 +23,5 @@ MCP request bodies, plus a unique `requestId`:
 Read live schemas before submitting. Animated images and unsupported formats are reported, not flattened silently. Originals remain unchanged. [Validate the result](execution.md) rather than claiming success solely from exit status.
 
 For requested operations beyond these presets, select [custom processing](custom-processing.md) and read [direct Sharp](sharp.md). Do not force the request into a mismatched built-in operation.
+
+Use the opt-in `--preset clarity` / MCP `options.preset: "clarity"` when the user prioritizes detail while still compressing. It uses image/cover quality 90 (WebP effort 6, smartSubsample enabled) and video CRF 18 / slow. Omission keeps quality 80 and CRF 23 / medium. Explicit quality overrides images/covers only. No automatic resizing or sharpening. This is lossy and may be slower/larger; never promise a quality threshold or the smallest possible output. Audio/model optimization and automatic GLB posters keep their existing policies. Check installed support before using the flag.

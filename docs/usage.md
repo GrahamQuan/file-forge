@@ -172,3 +172,5 @@ Produces front/back/left/right/top/bottom quality-80 lossy WebPs and a v5 manife
 Describe the result in chat, for example: “Crop this image to the specified region and add this logo,” or “Extract the second audio track without re-encoding.” Codex can select direct Sharp/FFmpeg when the built-in workflow does not fit, announce its choice, check the installed capabilities and process the files. Missing tools, unclear essential parameters and failures still trigger a question with a proposed solution. See [custom processing](custom-processing.md). These operations use host execution tools, not an arbitrary-command FileForge endpoint.
 
 Each 3D poster is rendered to a temporary PNG and automatically processed through the shared image workflow before delivery: quality-80 lossy WebP, no additional resizing, output validation and exclusive publication. Ordinary image compression keeps its existing defaults; no manual second compression pass is needed.
+
+Opt in to `--preset clarity` for higher image/video detail retention with compression. Defaults are unchanged; see [clarity preset](clarity-preset.md) for settings, overrides and tradeoffs.

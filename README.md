@@ -108,3 +108,5 @@ The skill supports both built-in FileForge workflows and custom Sharp/FFmpeg pro
 3D posters automatically pass each rendered PNG through the shared image workflow before delivery, preserving the canvas size and using quality-80 lossy WebP. The standard quality-80 encoding runs once; no second compression pass is needed.
 
 GLB compression automatically generates six default 16:9 posters through the standard image workflow. Combined model/folder deliveries use manifest v6; poster failures retain the processed model and report partial status. Poster-only commands still support custom ratios and sizes.
+
+Image, video and folder compression support `--preset clarity`: image/cover quality 90 (WebP effort 6 and smart subsampling), video CRF 18 with slow encoding. The standard defaults remain quality 80 / CRF 23 medium. Explicit quality overrides images/covers only. Clarity is lossy, may take longer and produce larger files, and does not change dimensions unless requested.

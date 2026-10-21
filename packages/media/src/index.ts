@@ -15,7 +15,9 @@ export class MediaError extends Data.TaggedError("MediaError")<{
 }> {}
 
 const dimension = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0));
+export const CompressionPresetSchema = Schema.Literals(["standard", "clarity"]);
 export const ImageOptionsSchema = Schema.Struct({
+  preset: Schema.optional(CompressionPresetSchema),
   width: Schema.optional(dimension),
   height: Schema.optional(dimension),
   quality: Schema.optional(
@@ -24,6 +26,12 @@ export const ImageOptionsSchema = Schema.Struct({
   format: Schema.optional(Schema.Literals(["webp", "jpeg", "png", "avif"])),
 });
 export type ImageOptions = typeof ImageOptionsSchema.Type;
+export const imageQuality = (options: ImageOptions) =>
+  options.quality ?? (options.preset === "clarity" ? 90 : 80);
+export const videoEncoding = (options: { preset?: "standard" | "clarity" }) =>
+  options.preset === "clarity"
+    ? { crf: 18, encoderPreset: "slow" as const }
+    : { crf: 23, encoderPreset: "medium" as const };
 export const validateImageOptions = (value: unknown) =>
   Schema.decodeUnknownEffect(ImageOptionsSchema)(value).pipe(
     Effect.mapError(
@@ -75,8 +83,12 @@ export const ImageEngineLive = Layer.succeed(ImageEngine, {
       }
       if (encoding === "lossless-webp")
         return image.webp({ lossless: true, effort: 6 }).toFile(output);
+      if (options.preset === "clarity" && (options.format ?? "webp") === "webp")
+        return image
+          .webp({ quality: imageQuality(options), effort: 6, smartSubsample: true })
+          .toFile(output);
       return image
-        .toFormat(options.format ?? "webp", { quality: options.quality ?? 80 })
+        .toFormat(options.format ?? "webp", { quality: imageQuality(options) })
         .toFile(output);
     }),
 });
@@ -223,6 +235,7 @@ export {
 
 // A missing axis is automatic; omitting both axes leaves the original size unchanged.
 export const CompressionOptionsSchema = Schema.Struct({
+  preset: Schema.optional(CompressionPresetSchema),
   width: Schema.optional(dimension),
   height: Schema.optional(dimension),
   quality: ImageOptionsSchema.fields.quality,
@@ -249,6 +262,7 @@ export const compressVideo = (input: string, directory: string, options: Compres
           code: "INVALID_INPUT",
           detail: "Video dimensions must be at least 2 pixels",
         });
+      const encoding = videoEncoding(validated);
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const source = yield* fs.realPath(input);
@@ -271,9 +285,9 @@ export const compressVideo = (input: string, directory: string, options: Compres
         "-c:v",
         "libx264",
         "-crf",
-        "23",
+        String(encoding.crf),
         "-preset",
-        "medium",
+        encoding.encoderPreset,
         "-pix_fmt",
         "yuv420p",
         "-c:a",
@@ -287,6 +301,7 @@ export const compressVideo = (input: string, directory: string, options: Compres
       yield* runFfmpeg(["-n", "-i", temporary, "-map", "0:v:0", "-frames:v", "1", frame]);
       const result = yield* processImage(frame, cover, {
         quality: validated.quality,
+        preset: validated.preset,
         format: "webp",
       });
       const output = path.join(directory, "video.mp4");

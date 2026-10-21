@@ -58,6 +58,8 @@ For audio/music compression, read [audio and music](references/audio.md) and use
 
 ## Shared behavior
 
+- When the user opts into clearer compressed images/videos, use the `clarity` preset described in the image/video/folder references. Keep standard compression as the default; disclose that clarity is still lossy and can be slower or larger.
+
 - Built-in compression defaults below do not override an explicit custom crop, resize, canvas, format or editing request. Custom work follows its own quality-first validation and delivery rules.
 - For existing image/video resizing, no width and no height means **skip resizing and retain original dimensions**. There is no 512 × 512 fallback. One supplied axis leaves the other automatic; two supplied axes are maximum bounds, not a crop or stretch request.
 - Media processing preserves sources and writes a new delivery folder, defaulting to Downloads on macOS. Explicit source-folder renaming is a separate opt-in operation: apply only the authorized directory mapping and preserve file contents. MCP writes need an explicit receipt/output parent inside the configured root.

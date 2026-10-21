@@ -2,6 +2,8 @@ import { randomUUID, createHash } from "node:crypto";
 import { Effect, FileSystem, Path } from "effect";
 import {
   compressVideo,
+  imageQuality,
+  videoEncoding,
   compressAudio,
   compressGlb,
   audioExtensions,
@@ -156,11 +158,19 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
           : "empty",
       parameters: {
         recursive: true,
+        video: {
+          ...videoEncoding(validated),
+          coverQuality: imageQuality(validated),
+          preset: validated.preset ?? "standard",
+        },
         image: {
           ...Object.fromEntries(
             Object.entries(validated).filter(([, value]) => value !== undefined),
           ),
           namingPolicy: 1,
+          ...(validated.preset === "clarity"
+            ? { quality: imageQuality(validated), effort: 6, smartSubsample: "true" }
+            : {}),
         },
       },
       assets: [...assets],

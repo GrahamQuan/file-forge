@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, copyFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import sharp from "sharp";
@@ -75,6 +75,54 @@ test("compression accepts optional dimensions and produces resized WebP and vide
       video,
     );
     const sourceBytes = await readFile(video);
+    for (const kind of ["image", "video"]) {
+      const source = kind === "image" ? input : video;
+      const result = cli(kind, "compress", source, "--preset", "clarity", "--output", root);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      const manifest = JSON.parse(result.stdout);
+      const settings = manifest.parameters[kind];
+      assert.equal(settings.preset, "clarity");
+      if (kind === "image") {
+        assert.equal(settings.quality, 90);
+        assert.deepEqual(
+          await readFile(manifest.assets[0].output),
+          await sharp(input)
+            .rotate()
+            .webp({ quality: 90, effort: 6, smartSubsample: true })
+            .toBuffer(),
+        );
+      } else {
+        assert.equal(settings.crf, 18);
+        assert.equal(settings.encoderPreset, "slow");
+        assert.equal(settings.coverQuality, 90);
+        const baseline = JSON.parse(cli("video", "compress", source, "--output", root).stdout);
+        const distortion = (path) => {
+          const report = ffmpeg("-i", source, "-i", path, "-lavfi", "psnr", "-f", "null", "-");
+          return Number(report.stderr.match(/average:([0-9.]+)/)[1]);
+        };
+        assert.ok(distortion(manifest.assets[0].output) > distortion(baseline.assets[0].output));
+      }
+      const overridden = JSON.parse(
+        cli(kind, "compress", source, "--preset", "clarity", "--quality", "72", "--output", root)
+          .stdout,
+      );
+      assert.equal(overridden.parameters[kind][kind === "image" ? "quality" : "coverQuality"], 72);
+      assert.equal(
+        cli(kind, "compress", source, "--preset", "unknown", "--output", root).status,
+        2,
+      );
+    }
+    const mixed = join(root, "mixed");
+    await mkdir(mixed);
+    await copyFile(input, join(mixed, "image.png"));
+    await copyFile(video, join(mixed, "video.mp4"));
+    const folderResult = cli("folder", "compress", mixed, "--preset", "clarity", "--output", root);
+    assert.equal(folderResult.status, 0, folderResult.stdout + folderResult.stderr);
+    const folderManifest = JSON.parse(folderResult.stdout);
+    assert.equal(folderManifest.parameters.image.quality, 90);
+    assert.equal(folderManifest.parameters.video.crf, 18);
+    assert.equal(folderManifest.assets.length, 3);
+
     for (const dimensions of [
       ["--width", "0"],
       ["--height", "-1"],

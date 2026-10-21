@@ -53,6 +53,7 @@ Compression preserves original dimensions when no size is supplied; supply width
 Output: a new task directory under Downloads or --output. Sources and existing outputs are preserved by media workflows. Folder rename previews by default; --apply renames original directories from an explicit JSON plan.
 Folder compression always recurses; other directory operations require --recursive. Symlinks, animated images, SVG, and unsupported files are reported explicitly.
 Audio/music: strictly lossless; eligible PCM/FLAC becomes smaller verified FLAC, otherwise original bytes are retained. Requires FFprobe (FFPROBE_PATH supported). Models: self-contained GLB 2.0 JSON compaction only; binary data stays unchanged. Folder processing includes both.
+Compression preset: --preset clarity uses image/cover quality 90 and video CRF 18/slow; default standard remains quality 80 and CRF 23/medium. Explicit --quality overrides images/covers only. Clarity is lossy and may be slower/larger.
 3D posters: six axis views processed through the shared image workflow as quality-80 lossy WebP without additional resizing, transparent canvas, default 16:9 at 1024x576; --ratio W:H selects another ratio, one dimension derives the other, both set the canvas (16–4096; explicit ratio conflicts fail). Requires Chrome/Chromium; FILE_FORGE_CHROME_PATH selects an absolute executable. Model/folder compression automatically generates six posters per GLB.
 Manifest export accepts existing assets without processing them, or an existing version 1, 2, 3, 4 or 5 manifest.
 Exit codes: 0 success/empty, 1 partial/failure, 2 invalid arguments/configuration, 130 interruption.
@@ -109,6 +110,7 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
 产物保存在 Downloads 或 --output 下的新任务目录中。媒体处理保留源文件和现有产物。folder rename 默认预览；--apply 按明确的 JSON 计划重命名原目录。
 文件夹压缩总是递归；其他目录操作需要 --recursive。符号链接、动画图片、SVG 和不支持的文件会明确报告。
 音频/音乐：严格无损；符合条件的 PCM/FLAC 仅在样本验证通过且更小时转为 FLAC，否则保留原字节。需要 FFprobe（支持 FFPROBE_PATH）。模型：仅压缩自包含 GLB 2.0 的 JSON 空白，二进制数据不变。文件夹处理包含这两类素材。
+压缩预设：--preset clarity 使用图片/封面质量 90 和视频 CRF 18/slow；默认 standard 保持质量 80 和 CRF 23/medium。明确的 --quality 仅覆盖图片/封面质量。仍为有损，可能更慢、文件更大。
 3D 海报：六个轴向视图自动经过共享图片流程，不额外缩放，输出质量 80 的有损 WebP、透明画布，默认 16:9（1024×576）；--ratio W:H 可选其他比例，一个尺寸按比例推算另一边，两个尺寸确定画布（16–4096；与明确比例冲突时拒绝处理）。需要 Chrome/Chromium；FILE_FORGE_CHROME_PATH 可指定可执行文件的绝对路径。模型或文件夹压缩会为每个 GLB 自动生成六张默认海报。
 清单导出可接收现有素材而不重新处理，也可接收版本 1、2、3、4 或 5 的现有清单。
 退出码：0 成功或空集合，1 部分成功或失败，2 参数或配置错误，130 中断。
