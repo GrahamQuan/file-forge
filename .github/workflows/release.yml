@@ -1,0 +1,142 @@
+name: Validate and release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: file-forge-${{ github.event_name == 'pull_request' && github.ref || 'release' }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.repository == 'GrahamQuan/file-forge'
+    runs-on: macos-15
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      skip: ${{ steps.version.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - name: Install prerequisites
+        run: |
+          test "$(uname -m)" = arm64
+          brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+          pnpm install --frozen-lockfile
+      - name: Select next patch version
+        id: version
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const releases = await github.paginate(github.rest.repos.listReleases, {...context.repo, per_page: 100});
+            const marker = `Source commit: ${context.sha}`;
+            const existing = releases.find(r => r.body?.split('\n').includes(marker));
+            if (existing) {
+              if (existing.draft) throw new Error(`Incomplete draft ${existing.tag_name}: inspect and recover its assets before retrying. No assets will be overwritten.`);
+              core.setOutput('skip', 'true');
+              return;
+            }
+            const tags = await github.paginate(github.rest.repos.listTags, {...context.repo, per_page: 100});
+            const names = [...tags.map(t => t.name), ...releases.map(r => r.tag_name)];
+            const versions = names.filter(n => /^v\d+\.\d+\.\d+$/.test(n)).map(n => n.slice(1).split('.').map(Number));
+            versions.push([0, 0, 0]);
+            versions.sort((a,b) => b[0]-a[0] || b[1]-a[1] || b[2]-a[2]);
+            const [major, minor, patch] = versions[0];
+            if (![major, minor, patch + 1].every(Number.isSafeInteger)) throw new Error('Invalid release version');
+            core.setOutput('version', `${major}.${minor}.${patch + 1}`);
+      - name: Stamp release build
+        if: steps.version.outputs.version != ''
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          pnpm build
+          node packages/cli/dist/release-version.js "$RELEASE_VERSION"
+      - name: Validate source and release build
+        run: |
+          pnpm check
+          pnpm test:e2e
+      - name: Package verified runtime
+        if: steps.version.outputs.version != ''
+        run: pnpm package:runtime
+      - name: Save verified artifacts
+        if: steps.version.outputs.version != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-${{ github.sha }}
+          path: |
+            release/*.tar.gz
+            release/*.zip
+            release/*.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.validate.outputs.version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-${{ github.sha }}
+          path: release
+      - name: Publish complete release
+        uses: actions/github-script@v7
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const crypto = require('node:crypto');
+            const version = process.env.RELEASE_VERSION;
+            if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('Invalid version');
+            const tag = `v${version}`;
+            const filename = `file-forge-${version}-darwin-arm64.tar.gz`;
+            const archive = fs.readFileSync(`release/${filename}`);
+            const checksum = fs.readFileSync(`release/${filename}.sha256`);
+            const hash = crypto.createHash('sha256').update(archive).digest('hex');
+            if (checksum.toString() !== `${hash}  ${filename}\n`) throw new Error('Artifact checksum mismatch');
+            const body = [
+              `Source commit: ${context.sha}`,
+              '',
+              'macOS Apple Silicon runtime. Install Node.js 24 and FFmpeg separately.',
+              'Download the archive and SHA-256 sidecar, verify with shasum -a 256 -c, then extract and run ./install.js.',
+              'To upgrade, install this new archive with the same --prefix; earlier managed builds are retained. Reconnect Codex MCP afterward.',
+              'The matching plugin ZIP requires separate runtime installation and local configuration. Automatic CLI self-update is not included yet.',
+              '',
+              `Validation: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              'Checksums detect corruption; this preview is not signed.'
+            ].join('\n');
+            const pluginName = `file-forge-plugin-${version}.zip`;
+            const plugin = fs.readFileSync(`release/${pluginName}`);
+            const pluginChecksum = fs.readFileSync(`release/${pluginName}.sha256`);
+            const pluginHash = crypto.createHash('sha256').update(plugin).digest('hex');
+            if (pluginChecksum.toString() !== `${pluginHash}  ${pluginName}\n`) throw new Error('Plugin checksum mismatch');
+            const payloads = [[filename, archive], [`${filename}.sha256`, checksum], [pluginName, plugin], [`${pluginName}.sha256`, pluginChecksum]];
+            // A conflict fails closed. Never delete or overwrite a release, tag, or asset.
+            await github.rest.git.createRef({...context.repo, ref: `refs/tags/${tag}`, sha: context.sha});
+            const {data: release} = await github.rest.repos.createRelease({...context.repo, tag_name: tag, target_commitish: context.sha, name: tag, body, draft: true, prerelease: false});
+            for (const [name, data] of payloads) {
+              await github.rest.repos.uploadReleaseAsset({...context.repo, release_id: release.id, name, data, headers: {'content-type': 'application/octet-stream', 'content-length': data.length}});
+            }
+            const {data: assets} = await github.rest.repos.listReleaseAssets({...context.repo, release_id: release.id});
+            if (assets.length !== payloads.length || !payloads.every(([name, data]) => assets.some(a => a.name === name && a.size === data.length))) throw new Error('Incomplete release assets');
+            await github.rest.repos.updateRelease({...context.repo, release_id: release.id, draft: false, make_latest: 'true'});

@@ -16,6 +16,9 @@ import {
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import sharp from "sharp";
+const runtimeVersion = JSON.parse(
+  await readFile(new URL("../packages/cli/package.json", import.meta.url), "utf8"),
+).version;
 const gone = (pid) => {
   try {
     process.kill(pid, 0);
@@ -54,6 +57,23 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
         process.cwd(),
       ),
     );
+    const pluginBytes = await readFile(packed.plugin);
+    assert.equal(createHash("sha256").update(pluginBytes).digest("hex"), packed.pluginSha256);
+    const pluginManifest = await run(
+      "/usr/bin/unzip",
+      ["-p", packed.plugin, "file-forge/plugin.json"],
+      process.env,
+      root,
+    );
+    assert.equal(pluginManifest.code, 0);
+    assert.equal(JSON.parse(pluginManifest.stdout).version, runtimeVersion);
+    const pluginCompatibility = await run(
+      "/usr/bin/unzip",
+      ["-p", packed.plugin, "file-forge/.codex-plugin/plugin.json"],
+      process.env,
+      root,
+    );
+    assert.equal(JSON.parse(pluginCompatibility.stdout).version, runtimeVersion);
     const bytes = await readFile(packed.archive);
     assert.equal(createHash("sha256").update(bytes).digest("hex"), packed.sha256);
     assert.ok((await readFile(`${packed.archive}.sha256`, "utf8")).startsWith(packed.sha256));
@@ -64,7 +84,7 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
         .code,
       0,
     );
-    const source = join(extracted, "file-forge-0.0.0-darwin-arm64");
+    const source = join(extracted, `file-forge-${runtimeVersion}-darwin-arm64`);
     const bin = join(root, "external-bin");
     await mkdir(bin);
     await symlink(process.execPath, join(bin, "node"));
@@ -89,7 +109,10 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
     const installed = successful(await install());
     assert.equal(installed.status, "installed");
     const executable = join(prefix, "bin/file-forge");
-    assert.equal((await run(executable, ["--version"], env, root)).stdout, "file-forge 0.0.0\n");
+    assert.equal(
+      (await run(executable, ["--version"], env, root)).stdout,
+      `file-forge ${runtimeVersion}\n`,
+    );
     assert.equal((await run(join(source, "file-forge.js"), ["--help"], env, root)).code, 0);
     const originalTarget = await readlink(executable);
     const managed = join(prefix, "lib/file-forge");

@@ -122,7 +122,62 @@ else { const { main } = await import('./runtime/dist/install.js'); await main(fi
       // Exclusive links publish only new artifacts, never replacing an earlier build.
       yield* fs.link(archive, path.join(destination, filename));
       yield* fs.link(checksum, path.join(destination, `${filename}.sha256`));
-      return { archive: path.join(destination, filename), sha256: digest };
+      const pluginRoot = path.join(temporary, "file-forge");
+      for (const relative of [
+        "plugin.json",
+        ".codex-plugin/plugin.json",
+        "mcp.json",
+        ".mcp.json",
+        "scripts/start.sh",
+        "skills/file-forge/SKILL.md",
+        "SETUP.md",
+      ]) {
+        const source = path.join(repository, "packages/file-forge-plugin", relative);
+        if (!(yield* statLink(source)).isFile()) return yield* problem("INVALID_PLUGIN");
+        if (relative.endsWith("plugin.json")) {
+          const manifest = JSON.parse(yield* fs.readFileString(source));
+          if (manifest.version !== pkg.version || manifest.name !== "file-forge")
+            return yield* problem("PLUGIN_VERSION_MISMATCH");
+        }
+        if (relative === "mcp.json" || relative === ".mcp.json") {
+          const configuration = JSON.parse(yield* fs.readFileString(source));
+          delete configuration.$schema;
+          if (
+            JSON.stringify(configuration) !==
+            JSON.stringify({
+              mcpServers: {
+                "file-forge": {
+                  type: "stdio",
+                  command: "/bin/sh",
+                  args: ["${PLUGIN_ROOT}/scripts/start.sh"],
+                },
+              },
+            })
+          )
+            return yield* problem("PLUGIN_CONFIGURATION_NOT_PORTABLE");
+        }
+        const target = path.join(pluginRoot, relative);
+        yield* fs.makeDirectory(path.dirname(target), { recursive: true });
+        yield* fs.copyFile(source, target);
+      }
+      const pluginName = `file-forge-plugin-${pkg.version}.zip`;
+      yield* command("zip", ["-qr", path.join(temporary, pluginName), "file-forge"], temporary);
+      const pluginDigest = sha256(yield* fs.readFile(path.join(temporary, pluginName)));
+      yield* fs.writeFileString(
+        path.join(temporary, `${pluginName}.sha256`),
+        `${pluginDigest}  ${pluginName}\n`,
+      );
+      yield* fs.link(path.join(temporary, pluginName), path.join(destination, pluginName));
+      yield* fs.link(
+        path.join(temporary, `${pluginName}.sha256`),
+        path.join(destination, `${pluginName}.sha256`),
+      );
+      return {
+        archive: path.join(destination, filename),
+        sha256: digest,
+        plugin: path.join(destination, pluginName),
+        pluginSha256: pluginDigest,
+      };
     }),
   );
 const args = process.argv.slice(2);

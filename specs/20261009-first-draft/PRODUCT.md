@@ -6,6 +6,8 @@ The current local MCP/plugin milestone is specified in [Codex integration](../20
 
 Created: 2026-10-09
 
+Updated: 2026-10-21. HyperFrames rendering and hierarchical delivery naming below are proposed additions; the Downloads default is confirmed. This revision does not claim implementation.
+
 Technical design: [TECH.md](./TECH.md)
 
 ## Positioning and decisions
@@ -57,7 +59,7 @@ This ordering does not discard the remaining requirements or imply implementatio
 
 ### Remaining v1 target
 
-- ZIP input, audio/music processing and composition, GLB compression, and SVG-to-JSX/TSX conversion.
+- ZIP input, audio/music processing and composition, optional HyperFrames project rendering, GLB compression, and SVG-to-JSX/TSX conversion.
 - Specialized `song.md` and `prompt.md` delivery formats after inspecting original examples.
 - Asset replacement and fresh remote status queries after defining overwrite and caching behavior. Version history is a possible design choice, not a separately confirmed feature.
 - Environment diagnostics.
@@ -82,7 +84,11 @@ Human output provides readable summaries; machine output has a stable structure.
 
 Accept file lists and directories, making recursion, selection, and unsupported formats explicit. Empty input receives an explicit result rather than a fabricated success. Before upload, check names, size, readability, destination configuration, and conflicts. Limits come from explicit configuration or options, not undocumented assumptions.
 
-Detection identifies types and available capabilities; it does not authorize cropping, uploading, or overwriting. Output basenames use lowercase letters, digits, and hyphens, with extensions handled separately. Unicode names, empty slugs, and collisions require deterministic, traceable names. Preserve source files and original-to-output mappings by default.
+Detection identifies types and available capabilities; it does not authorize cropping, uploading, or overwriting. Normalize generated delivery folder segments and filename stems to ASCII lowercase letters (`a-z`), digits (`0-9`), and hyphens only. Replace runs of other characters, including spaces, `_`, `+`, and dots, with one hyphen; trim leading and trailing hyphens. Preserve `/` as the hierarchy separator and the final file extension separately in lowercase (for example, `.mp4`). Preserve source files, user metadata, and original-to-output mappings.
+
+Accept an explicit relative delivery path representing a project and route. For example, `example.com/Some-Route/some example` becomes `example-com/some-route/some-example`; `My Clip.MP4` becomes `my-clip.mp4`. This is naming input, not a URL to fetch. Apply the same rules to an explicitly supplied version segment without inventing a project version.
+
+Allow an existing final asset collection to be prepared in this layout by copying selected files without recompression or upload. Report empty normalized segments and collisions before publishing the collection; never silently merge differently named source folders or overwrite files. Deterministic asset suffixes remain permitted for ordinary processing outputs, but must be reflected in mappings. Reject absolute delivery paths, traversal segments, and empty hierarchy segments. Non-ASCII characters follow the same replacement rule; no automatic translation or transliteration is implied.
 
 ### P03 Batch processing and media outputs
 
@@ -90,7 +96,9 @@ A single request can process a collection. FileForge manages concurrency instead
 
 A video cover uses the first decodable video frame and remains linked to its source. Missing video streams and decoding failures produce explicit errors, not empty covers. Use an explicit preset or report missing options rather than inferring an operation from file type alone.
 
-On the initial macOS target, default output goes into a separate task directory under the user's Downloads directory. Allow an explicit output location. Confirm other platforms and defaults before distribution.
+On macOS, the default output root is the current user's `~/Downloads`, independent of the working directory. Allow an explicit output root. Retain a separate task directory to preserve earlier exports: `~/Downloads/file-forge-<task-id>/<normalized-delivery-path>/<filename>`. When no delivery path is supplied, keep outputs directly in the task directory. Return the resolved directory and relative asset paths. Missing permissions or an unusable output root produce an explicit failure without falling back elsewhere. Other platforms require an explicit output root until their defaults are confirmed.
+
+For upload, the collection-relative path is the object key beneath the selected profile's explicit prefix: `example-com/some-route/some-example/xxx.mp4`. Exclude the local Downloads path and task-directory name. Preparing this layout does not authorize an upload. Separate local task directories preserve exports but do not provide remote versioning; repeated keys still follow the no-overwrite policy.
 
 ### P04 Projects and upload destinations
 
@@ -186,6 +194,16 @@ Add local MCP configuration to the same plugin after the server and shared opera
 
 Document supported runtime versions for every plugin release and report incompatible installations before invoking unsupported operations. Runtime self-update and plugin updates are separate lifecycles; upgrading the CLI does not implicitly update the skill. Clear instructions improve discovery but do not guarantee automatic skill selection. Standalone skills may support development or testing; the plugin is the intended user-facing integration. An `llms.txt` documentation index is optional and is not an installation or discovery mechanism.
 
+### P16 Optional HyperFrames rendering
+
+Support rendering an existing local HyperFrames project into a final MP4 through both CLI and MCP, using explicit render settings and the shared output and delivery rules. This adds HTML/CSS-based motion graphics and designed compositions alongside existing image and audio/video processing. HyperFrames is an optional third-party rendering backend; missing dependencies block only its operations.
+
+The initial scope is project-to-video rendering. Composition authoring, a graphical editor, hosted rendering, and automatic installation of upstream agent plugins are excluded. Preserve the supplied project and its internal asset names so references continue to resolve; normalize only final delivery copies. No model API or Bucket credentials are required for a self-contained local render.
+
+Validate project inputs, supported settings, and dependency compatibility before rendering. Report progress, cancellation, missing assets, unsupported projects, render failures, and verified output metadata through the existing operation contracts. A failed or cancelled render must not publish a partial video as successful. Stop task-owned render processes and browser resources on completion, failure, or cancellation.
+
+HyperFrames projects execute code. Rendering must be explicitly requested, and implementation must settle the supported project trust, filesystem, and network policy before enabling the operation. Inspection alone must not execute the project.
+
 ## Open decisions
 
 1. Specialized delivery template fields and compatibility with their consumers.
@@ -193,9 +211,12 @@ Document supported runtime versions for every plugin release and report incompat
 3. Asset replacement semantics, versioned URLs, caching, and remote-query scope.
 4. Supported S3-compatible providers, provider limits, private-object access, and distribution platforms.
 5. The scope of Logo and Open Graph features.
-6. GitHub repository identity, supported OS/architecture targets, package format, and Node.js bundling. Version commands and English-default bilingual presentation are already confirmed.
-7. Whether local SQLite is actually required: the source lists it while also stating no database is needed. Keep the local JSON proposal and removed database code unchanged until this is resolved.
+6. Additional OS/architecture targets and Node.js bundling beyond the local macOS arm64 milestone. The confirmed GitHub repository is `GrahamQuan/file-forge`; main-branch automatic patch releases are defined in the agent-workflow follow-up. Version commands and English-default bilingual presentation are already confirmed.
+7. The validated HyperFrames version, supported render settings, and enforceable project execution policy.
+8. Whether local SQLite is actually required: the source lists it while also stating no database is needed. Keep the local JSON proposal and removed database code unchanged until this is resolved.
 
 Resolve these questions before implementing the affected capability. They do not prevent independent design of CLI/MCP, basic processing, and generic manifests.
 
 The local archive and installer milestone is specified in [runtime distribution](../20261016-runtime-distribution/TECH.md). Public hosting, signing, and self-update remain outside that milestone.
+
+Agent-operated validation, Codex setup, release preparation, download, and upgrade workflows are proposed in [agent workflows](../20261021-agent-workflows/PRODUCT.md). That follow-up does not change the completed local distribution milestone or imply that public releases exist.

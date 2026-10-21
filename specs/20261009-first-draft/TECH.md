@@ -6,6 +6,8 @@ The current local MCP/plugin milestone is specified in [Codex integration](../20
 
 Created: 2026-10-09
 
+Updated: 2026-10-21. The delivery-path and HyperFrames sections are proposed changes, not implementation evidence.
+
 Product contract: [PRODUCT.md](./PRODUCT.md)
 
 ## Objective and continuity
@@ -33,10 +35,17 @@ The user authorized removing the Electron/React application, desktop SQLite pack
 
 README and AGENTS.md now describe the CLI/MCP direction. No system-design index exists. CLI, MCP, Effect integration, localization runtime, user preference persistence, uploads, manifests, and self-update remain unimplemented. Existing media-library English diagnostics are internal errors; the future CLI must map them to display message keys rather than print them as its localization layer.
 
+### Evidence for the 2026-10-21 additions
+
+`packages/cli/src/commands.ts` currently defaults output to `homedir()/Downloads` on macOS and requires explicit output elsewhere. `packages/core/src/index.ts` provides `createDeliveryDirectory`, `outputName`, and `ManifestSchema`: task directories already exist, while filename generation currently uses NFKD normalization, an `asset` fallback, and identity hashes. That legacy filename policy does not implement the new strict delivery-path contract. Preserve existing recorded outputs; introduce the new policy for newly prepared delivery copies with an explicit naming-policy version.
+
+The [HyperFrames repository](https://github.com/heygen-com/hyperframes), reviewed on 2026-10-21, describes local HTML/CSS animation rendering through headless Chrome and FFmpeg, a CLI, rendering packages, and an Apache-2.0 license. These are upstream capabilities, not verified FileForge integration. Select and validate an exact release before implementation.
+
 ## Stack and boundaries
 
 - Retain Node.js, TypeScript strict mode, pnpm workspaces, Turborepo, oxlint, and oxfmt. Reuse existing package boundaries and media primitives.
 - Continue the TypeScript 7 / ts-go native compiler direction. Verify runtime compatibility when implementing; do not upgrade dependencies merely to edit the specification.
+- Add optional HyperFrames support for local HTML composition rendering through an Effect adapter; retain Sharp and FFmpeg for their existing responsibilities.
 - Use Sharp for images and FFmpeg for audio/video/composition. Resolve FFmpeg through PATH or `FFMPEG_PATH`; do not download it automatically.
 - Use Effect v4 throughout application and infrastructure code, including media processing, configuration, persistence, uploads, upgrades, CLI, and MCP. This is an Effect-first architecture, not an optional wrapper around a permanent Promise-based core. Verify package versions, exports, and protocol support against the selected release.
 - Pin validated Effect dependency versions and choose mutually compatible ecosystem packages; do not assume identical version numbers. Commit the lockfile and avoid installing competing frameworks without a concrete need.
@@ -151,6 +160,30 @@ SVG-to-JSX/TSX needs a separate source-conversion adapter with explicit output l
 
 All adapters use the same batch lifecycle, cancellation, output staging, error/result contracts, and locale-independent codes. New display messages belong in the central bilingual catalog.
 
+### HyperFrames adapter (P16)
+
+Add a focused adapter behind the public `packages/media` exports and a shared operation in `packages/core`; wire CLI and MCP to that operation with shared schema validation. Command/tool spelling and the exact upstream flags remain implementation details to verify against the pinned release. Accept a local project root, supported render settings, output root, and optional delivery path. Start with MP4 output; do not expose arbitrary upstream arguments or generic shell execution.
+
+Run rendering in a dedicated task process with argument arrays and `shell: false`, scoped through Effect. Keep upstream Promise interop inside the adapter if needed. Bound concurrency, logs, and execution time; keep MCP responsive. Distinguish missing/incompatible HyperFrames, Chrome, or FFmpeg from invalid input and rendering failures. Resolve dependencies explicitly without floating `npx` downloads or installation during a render. Optional dependencies must not prevent ordinary operations or version queries from starting.
+
+Render to task-owned staging, probe and decode the actual output, then publish through the same delivery naming and manifest flow. Record renderer version, effective settings, source-project identity, relative output path, and actual media metadata. Version manifest changes and retain compatibility with previous manifests. Do not rename the source project's HTML, scripts, fonts, or media references to satisfy delivery naming.
+
+Before enabling rendering, validate the selected release's filesystem/network controls and define the supported trust model. A child process alone is not a sandbox. Inspection must not load executable project code. Do not claim support for untrusted projects until isolation is established; reject requests outside the supported policy. Self-contained local rendering must work without external network resources.
+
+Cancellation and failure must stop the owned process tree, including Chrome and FFmpeg children and any temporary server. Track PIDs, working directory, ports, and sessions; terminate gracefully, verify ownership before escalation, and verify exit/port release. Preserve user browsers and successful outputs. Include dependency preparation and compatibility guidance in runtime/plugin documentation; do not bundle upstream skills or Studio by implication.
+
+### Downloads and delivery paths (P02/P03/P07)
+
+Reuse the current macOS Downloads resolution and exclusive task-directory creation. Centralize output-root resolution for equivalent CLI/MCP behavior; an explicit root takes precedence, and non-macOS calls require one. Fail on inaccessible destinations rather than silently redirecting output.
+
+Add a shared pure delivery-path normalizer in core, used by processing and ready-assets preparation. Split only on `/`; reject absolute paths, empty segments, and literal `.` or `..` segments before normalization. Within each segment, lowercase ASCII letters, replace each run outside `[a-z0-9-]` with `-`, collapse hyphen runs, and trim edge hyphens. Backslashes are invalid-name characters, never hierarchy separators. Reject empty results. Do not NFKD-transliterate this new policy. Separate the final extension from a file stem and preserve it in lowercase; dots inside folder names or stems become hyphens.
+
+Preflight the complete mapping, including normalized folder collisions and file/directory conflicts, before publishing. Report conflicts with original names; require corrected input instead of silently merging folders. Preserve the existing hashed naming policy for ordinary processing where applicable, and record its actual names. Validate path containment with filesystem services, including symlinks, aliases, platform limits, and output-directory recursion. Do not silently truncate delivery segments or escape the selected root.
+
+Example: delivery path `example.com/Some-Route/some example` and file `xxx.mp4` produce `~/Downloads/file-forge-<task-id>/example-com/some-route/some-example/xxx.mp4`. Store the original path, normalized collection-relative path, naming-policy version, and local output mapping. Object keys use that relative path beneath the explicit storage prefix with `/` separators, never the Downloads/task-directory prefix. Do not rewrite an existing configured storage prefix or previously published keys. Local task IDs are not project versions; only explicit version segments affect the delivery hierarchy.
+
+For an existing collection, copy selected files into staging and verify byte preservation before publication. This operation does not transcode or upload. Preserve old manifests and files; introduce schema compatibility when persisting the additional fields. Update both READMEs and central bilingual messages when implementing these capabilities.
+
 ### Ready-assets delivery and templates (P07)
 
 Allow manifest export to start from an inspected existing collection plus explicit metadata/remote mappings, without requiring a new processing job or upload. Validate supplied mappings and distinguish user-supplied addresses from verified upload records. Preserve source-to-processed, video-to-cover, and song-to-related-asset relationships.
@@ -224,7 +257,7 @@ Separate stable `assetId` from content fingerprints. Record sources, outputs, ro
 
 ## Execution and storage safeguards
 
-- Normalize output names only. Add deterministic collision suffixes, never overwrite sources or sibling outputs, and retain original-name mappings. Fix and verify Unicode/empty-slug behavior during implementation.
+- Normalize generated outputs only. Preserve ordinary processing identity suffixes and original-name mappings. For explicit delivery hierarchies, follow P02: reject empty normalized names and collisions before publication; never overwrite sources or sibling outputs.
 - Validate real paths, symlinks, input/output aliases, and recursive scanning of output directories. Limit operations to the selected scope; MCP connectivity is not unlimited filesystem authorization.
 - V1 ZIP support must bound extraction size/count and reject traversal and unsafe links before scanning.
 - Write staged outputs, verify them, then publish. Clean only task-owned temporary files, not successful outputs or user files.
@@ -275,7 +308,7 @@ This defines behavior, not a published release, workflow, installer, or authoriz
 2. Migrate the media prototype and its real E2E to Effect services first. Then add Effect-based core contracts, CLI presentation/messages, user preference handling, and one real image CLI flow using those services. Update scripts and README alongside actual functionality.
 3. Add video covers, jobs/manifests, and multi-project uploads for the initial delivery flow, retaining independent CLI use.
 4. Package the initial CLI-backed FileForge plugin with its usage skill, setup guidance, and compatibility information; validate setup and real CLI workflows without MCP. Add STDIO MCP with shared validation/results and actual protocol E2E, then add its configuration to the same plugin.
-5. Complete the remaining v1 adapters: ZIP intake, agreed audio/composition operations, GLB compression, SVG conversion, specialized templates, and remote inspection/replacement after their prerequisite decisions. The first working chain is a milestone, not full v1 acceptance.
+5. Complete the remaining v1 adapters: ZIP intake, agreed audio/composition operations, optional HyperFrames rendering after its execution policy is settled, hierarchical delivery preparation, GLB compression, SVG conversion, specialized templates, and remote inspection/replacement after their prerequisite decisions. The first working chain is a milestone, not full v1 acceptance.
 6. Complete GitHub packages, version flags, self-update, clean-install checks, and skill/plugin distribution for the declared release scope. V2 adds scene-specific image outputs; watermarking has no committed release.
 
 The user authorized early legacy cleanup, so implementing CLI first is no longer a prerequisite to deleting the old desktop/database/shared packages. Historical SQLite data remains untouched and is not automatically imported: old Asset rows do not capture complete delivery relationships. Design historical import separately if requested.
@@ -321,3 +354,15 @@ Completion requires applicable product behaviors, checks/E2E, accurate installat
 The Effect v4 direction is inherited, not a claim that current upstream versions or exports were verified here. During implementation, consult official guides, CLI/MCP examples, schema documentation, and migrations matching selected versions. Do not copy floating main or obsolete import paths. Verify current Codex plugin packaging rules at the packaging stage. Treat proposed dependencies and APIs as design choices, not existing repository facts.
 
 The local archive and installer milestone is specified in [runtime distribution](../20261016-runtime-distribution/TECH.md). Public hosting, signing, and self-update remain outside that milestone.
+
+### Acceptance for the 2026-10-21 additions
+
+Use only real non-UI E2E through CLI and MCP; no UI, screenshot, or component tests. Run `pnpm check` and `pnpm test:e2e` during implementation, not as proof that this specification implements the features.
+
+- P02/P03/P07: use an isolated home/Downloads and real nested files to verify defaults, explicit roots, repeated exports, inaccessible destinations, and byte-preserving collection preparation. Verify the exact domain/route example, spaces, underscores, plus signs, repeated hyphens, uppercase extensions, non-ASCII and empty results, folder/file collisions, traversal, backslashes, symlinks, and unchanged sources. Read back manifests and verify compatible older records.
+- P04/P05: upload an explicitly selected prepared collection to isolated S3-compatible storage and read it back. Assert exact relative keys beneath the configured prefix, exclusion of local task directories, and no overwrite on repeated keys. Naming-only preparation must make no upload.
+- P16: render a self-contained local fixture through the real pinned renderer via CLI and MCP, decode the MP4, and verify duration, dimensions, settings, and manifest mappings. Exercise missing dependencies/assets, invalid projects/settings, timeout, cancellation, policy rejection, and repeated runs. Verify process and port cleanup and that ordinary Sharp/FFmpeg operations still work without HyperFrames. Visual quality review belongs to the user; video decoding and metadata checks are non-UI validation.
+
+Open implementation prerequisites: pin the HyperFrames/Chrome compatibility set, finalize supported render settings, and establish an enforceable project trust/filesystem/network policy before enabling rendering. No runtime dependency or command is added by this spec revision.
+
+Agent-operated validation, Codex setup, release preparation, download, and upgrade workflows are proposed in [agent workflows](../20261021-agent-workflows/TECH.md). That follow-up does not change the completed local distribution milestone or imply that public releases exist.

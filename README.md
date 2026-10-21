@@ -4,7 +4,7 @@
 
 Local media processing for people, scripts, and coding agents, powered by Sharp and FFmpeg. Available through a CLI and local MCP tools.
 
-**Preview:** image processing, video compression, favicon generation, inspection, and delivery manifests are available. Uploads, persistent jobs, public releases, and self-update are not yet implemented.
+**Preview:** image processing, video compression, favicon generation, inspection, and delivery manifests are available. Uploads, persistent jobs, and self-update are not yet implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
 
 ## Quick start
 
@@ -44,7 +44,7 @@ English is the default. Save Chinese as your preference with `file-forge config 
 ## Codex and installation
 
 - **Codex / MCP:** follow the [setup guide](packages/file-forge-plugin/SETUP.md). Set `FILE_FORGE_ROOT` explicitly; tool paths must stay within it. Jobs last for the MCP session only.
-- **macOS Apple Silicon archive:** run `pnpm package:runtime` and follow the [installation guide](packages/cli/distribution/README.md). Public downloads are not available yet. Node.js and FFmpeg are installed separately; installing the plugin does not install the runtime.
+- **macOS Apple Silicon archive:** run `pnpm package:runtime` and follow the [installation guide](packages/cli/distribution/README.md). Download published builds from [GitHub Releases](https://github.com/GrahamQuan/file-forge/releases); the first download appears after a successful main-branch release. Node.js and FFmpeg are installed separately; installing the plugin does not install the runtime.
 
 ## Development
 
@@ -60,3 +60,9 @@ See the [product scope](specs/20261009-first-draft/PRODUCT.md), [technical desig
 ## License
 
 [MIT](LICENSE)
+
+## Automatic releases
+
+Pushes to `main` run `pnpm check` and real E2E on macOS arm64 before publishing the next patch version (`0.0.1`, `0.0.2`, ...). Pull requests only validate. Each release includes the runtime archive, a matching plugin ZIP, and SHA-256 sidecars. Verify the checksum before extraction, then run the archive installer. To upgrade, install the newer archive using the same prefix and reconnect Codex MCP; automatic `--upgrade` remains unavailable. Install/configure the matching plugin separately. Node.js and FFmpeg remain external prerequisites.
+
+Release tags identify the tested source commit; CI stamps release versions in its disposable checkout. No version commits are pushed back to main. Completed release reruns do not publish duplicates. Failed drafts require inspection/recovery and are never overwritten automatically; reserved tags may leave version gaps. The repository must allow GitHub Actions to write releases/tags. Public workflow execution has not been verified locally.

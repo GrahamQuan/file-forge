@@ -9,6 +9,9 @@ import { Effect, Layer } from "effect";
 import { NodeServices } from "@effect/platform-node";
 import { ImageEngineLive, processImage, inspectImage } from "@file-forge/media";
 
+const runtimeVersion = JSON.parse(
+  await readFile(new URL("../packages/cli/package.json", import.meta.url), "utf8"),
+).version;
 const bin = fileURLToPath(new URL("../packages/cli/bin/file-forge.js", import.meta.url));
 const live = Layer.mergeAll(NodeServices.layer, ImageEngineLive);
 const runMedia = (effect) => Effect.runPromise(effect.pipe(Effect.provide(live)));
@@ -43,7 +46,7 @@ test("CLI settings persist across projects, preserve malformed data, and keep ma
       project = join(root, "project");
     await mkdir(project);
     const version = await cli(["-v"], config, root);
-    assert.equal(version.stdout, "file-forge 0.0.0\n");
+    assert.equal(version.stdout, `file-forge ${runtimeVersion}\n`);
     assert.equal((await cli(["--version"], config, root)).stdout, version.stdout);
     assert.deepEqual(await readdir(root), ["project"]);
     assert.deepEqual(json(await cli(["config", "get", "language", "--json"], config, root)), {
