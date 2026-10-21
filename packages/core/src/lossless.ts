@@ -3,6 +3,7 @@ import { Cause, Effect, Exit, FileSystem, Path } from "effect";
 import { audioExtensions, compressAudio, compressGlb } from "@file-forge/media";
 import {
   createDeliveryDirectory,
+  generateModelPosters,
   isSymlink,
   OperationError,
   outputName,
@@ -37,11 +38,12 @@ export const compressLosslessFile = (input: string, kind: "audio" | "model", par
       size: Number(info.size),
       status: "failed" as const,
     };
-    const manifest: Manifest = {
-      schemaVersion: 4,
+    let manifest: Manifest = {
+      ...(kind === "model"
+        ? { schemaVersion: 6 as const, operation: "model" as const }
+        : { schemaVersion: 4 as const, operation: "audio" as const }),
       taskId,
       createdAt: new Date().toISOString(),
-      operation: kind,
       status: "failed",
       parameters: { recursive: false },
       assets: [asset],
@@ -53,7 +55,7 @@ export const compressLosslessFile = (input: string, kind: "audio" | "model", par
           ? compressAudio(source, staging)
           : compressGlb(source, staging);
         const output = path.join(directory, outputName(asset.originalName, source, result.format));
-        return yield* Effect.uninterruptible(
+        const completed = yield* Effect.uninterruptible(
           Effect.gen(function* () {
             yield* fs.link(result.output, output);
             const completed: Manifest = {
@@ -80,10 +82,23 @@ export const compressLosslessFile = (input: string, kind: "audio" | "model", par
                 },
               ],
             };
+            manifest = completed;
             yield* writeManifest(directory, completed);
             return { ...completed, directory };
           }),
         );
+        if (kind === "model") {
+          const posters = yield* generateModelPosters(source, {}, directory);
+          manifest = {
+            ...completed,
+            status: posters.status === "succeeded" ? "succeeded" : "partial",
+            parameters: { ...completed.parameters, ...posters.parameters },
+            assets: [...completed.assets, ...posters.assets],
+          };
+          yield* writeManifest(directory, manifest);
+          return { ...manifest, directory };
+        }
+        return completed;
       }),
     ).pipe(
       Effect.onExit((exit) =>

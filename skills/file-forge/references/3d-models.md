@@ -12,11 +12,11 @@ GLB optimization only compacts JSON whitespace, preserving numeric tokens and al
 
 Folder compression automatically uses this policy for GLB files. Dimensions and quality do not affect models. Sources remain intact. Mixed folders still use the existing lossy image/video presets; do not describe the whole folder as lossless. If the user requires strictly lossless images/videos too, stop and explain that those existing presets do not meet that requirement.
 
-Read schema-v4 asset fields `lossless`, `optimization`, `note`, `size`, `outputSize`, and `sizeChange`. `original-retained` is a valid successful outcome with zero savings. Report it explicitly, alongside the actual path and format. Never claim smaller size solely because the job succeeded.
+Read schema-v6 model deliveries (legacy v4 remains readable) and asset fields `lossless`, `optimization`, `note`, `size`, `outputSize`, and `sizeChange`. `original-retained` is a valid successful outcome with zero savings. Report it explicitly, alongside the actual path and format. Never claim smaller size solely because the job succeeded.
 
 ## Six-angle posters
 
-Use `model posters` / connected `generate_model_posters` when the user wants preview images of a GLB. This is independent of compression; neither `model compress` nor `folder compress` creates posters. Check installed help/schema first.
+Use `model posters` / connected `generate_model_posters` when the user wants preview images of a GLB. Both `model compress` and `folder compress` automatically create six default posters per successfully processed GLB; use this command for posters alone or custom dimensions/ratio. Check installed help/schema first.
 
 ```sh
 file-forge model posters "/absolute/My Model.glb" --width 1200 --height 800 --json
@@ -31,3 +31,5 @@ The MCP request uses `requestId`, `operation: "model-posters"`, `input`, `output
 - Check for local Chrome/Chromium (macOS Chrome or Edge under `/Applications`), or an absolute `FILE_FORGE_CHROME_PATH`. Three.js and decoders are packaged. A missing browser blocks only posters. Follow the entry skill's stop-and-ask rule before installing; propose the existing executable path or an approved browser installation. No user profile or existing tabs are used.
 - Input must be a self-contained GLB 2.0 up to 256 MiB. External resources, KTX2/Basis and unknown extensions are rejected. Do not silently remove materials/textures or change rendering tools after a failure. Diagnose `POSTER_BROWSER_REQUIRED`, `POSTER_UNSUPPORTED_MODEL`, `POSTER_RENDER_FAILED`, `POSTER_TIMEOUT` or image-stage `IMAGE_FAILED`, explain a concrete remedy and ask before retrying or changing scope.
 - Read schema-v5 per-view status and camera/output metadata. Report partial/cancelled results and retain successful views. WebP quality 80 is lossy; sources remain unchanged, but appearance depends on the renderer and lighting. Do not report image-versus-model size differences as compression savings.
+
+Model compression and folders containing GLBs use manifest schema v6 and automatically generate six 1024 × 576, 16:9, quality-80 WebP posters after each successful GLB optimization. The model remains strictly lossless; poster images are lossy derivatives. Each model's poster set lives in its own uniquely named delivery subfolder beside the processed GLB, with a separate v5 poster manifest; the parent v6 manifest also lists every view and its status. Folder image/video size settings do not alter these default poster canvases. Use the poster-only command for custom ratios or sizes. Missing Chrome, unsupported rendering or a failed view retains the processed GLB and successful views and reports a partial result. Cancellation preserves completed files and poster receipts. Inspection and manifest export never render posters.

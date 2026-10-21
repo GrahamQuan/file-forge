@@ -54,7 +54,7 @@ Example: “I found two folders named assets. Which should I process: the projec
 | Custom media operations beyond built-in presets          | [Custom processing](references/custom-processing.md), then [Sharp](references/sharp.md) or [FFmpeg](references/ffmpeg.md) | Direct Node/terminal execution                 |
 | Errors, old versions, unavailable workflow               | [Troubleshooting](references/troubleshooting.md)                                                                          | Diagnose before retrying                       |
 
-For audio/music compression, read [audio and music](references/audio.md) and use `compress_audio`. For 3D model compression or six-angle posters, read [3D models](references/3d-models.md) and use `compress_model` or `generate_model_posters`. Both support corresponding CLI commands; quality preservation takes priority over size reduction.
+For audio/music compression, read [audio and music](references/audio.md) and use `compress_audio`. For 3D model compression or six-angle posters, read [3D models](references/3d-models.md) and use `compress_model` or `generate_model_posters`. Both support corresponding CLI commands; quality preservation takes priority over size reduction for original audio/model data. GLB processing also automatically generates six default 16:9 quality-80 WebP posters; check rendering prerequisites and partial results.
 
 ## Shared behavior
 

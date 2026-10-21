@@ -157,7 +157,7 @@ file-forge audio compress "/absolute/song.wav" --output "/absolute/delivery" --j
 file-forge model compress "/absolute/scene.glb" --output "/absolute/delivery" --json
 ```
 
-Quality is strictly preserved. Eligible integer PCM/FLAC becomes sample-verified FLAC only when smaller; other audio retains its original bytes. Audio needs FFprobe. GLB support compacts JSON whitespace only, retaining all binary data and required extensions. It may save little or nothing. Folder compression includes these types automatically; its width/height/quality options still apply only to images/videos. See [formats, verification and limitations](lossless-audio-models.md). Results use schema v4 and explicitly report `original-retained` where appropriate.
+Quality is strictly preserved. Eligible integer PCM/FLAC becomes sample-verified FLAC only when smaller; other audio retains its original bytes. Audio needs FFprobe. GLB support compacts JSON whitespace only, retaining all binary data and required extensions. It may save little or nothing. Folder compression includes these types automatically; its width/height/quality options still apply only to images/videos. See [formats, verification and limitations](lossless-audio-models.md). Audio results use schema v4; model/folder results with automatic GLB posters use schema v6 and explicitly report `original-retained` where appropriate.
 
 ## Six-angle 3D posters
 
@@ -165,7 +165,7 @@ Quality is strictly preserved. Eligible integer PCM/FLAC becomes sample-verified
 file-forge model posters "/absolute/scene.glb" --width 1200 --height 800 --json
 ```
 
-Produces front/back/left/right/top/bottom quality-80 lossy WebPs and a v5 manifest, preserving the model. Defaults to a transparent 16:9 canvas (1024×576); `--ratio 9:16` or `--ratio 1:1` selects another ratio. One dimension derives the other; both set the canvas and must match an explicitly supplied ratio. Requires local Chrome/Chromium. MCP uses `generate_model_posters` with operation `model-posters`. See [dimensions, cameras, dependencies and limits](model-posters.md). This is separate from folder/model compression.
+Produces front/back/left/right/top/bottom quality-80 lossy WebPs and a v5 manifest, preserving the model. Defaults to a transparent 16:9 canvas (1024×576); `--ratio 9:16` or `--ratio 1:1` selects another ratio. One dimension derives the other; both set the canvas and must match an explicitly supplied ratio. Requires local Chrome/Chromium. MCP uses `generate_model_posters` with operation `model-posters`. See [dimensions, cameras, dependencies and limits](model-posters.md). Model/folder compression also generates these six views automatically.
 
 ## Requests beyond built-in workflows
 

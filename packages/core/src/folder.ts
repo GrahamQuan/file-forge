@@ -12,6 +12,7 @@ import {
 } from "@file-forge/media";
 import {
   createDeliveryDirectory,
+  generateModelPosters,
   imageExtensions,
   isSymlink,
   OperationError,
@@ -138,9 +139,11 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
     const directory = yield* createDeliveryDirectory(destination, taskId);
     const createdAt = new Date().toISOString();
     const manifest = (): Manifest => ({
-      schemaVersion: planned.some((p) => p.asset.kind === "audio" || p.asset.kind === "model")
-        ? 4
-        : 2,
+      schemaVersion: planned.some((p) => p.asset.kind === "model")
+        ? 6
+        : planned.some((p) => p.asset.kind === "audio")
+          ? 4
+          : 2,
       taskId,
       createdAt,
       operation: "folder",
@@ -200,6 +203,16 @@ export const compressFolder = (input: string, options: CompressionOptions, outpu
                   });
                 }),
               );
+              if (asset.kind === "model") {
+                yield* writeManifest(directory, manifest());
+                const posters = yield* generateModelPosters(
+                  asset.source,
+                  {},
+                  path.dirname(destination),
+                );
+                assets.push(...posters.assets);
+                yield* writeManifest(directory, manifest());
+              }
             } else if (asset.kind === "video") {
               const result = yield* compressVideo(asset.source, staging, validated);
               yield* Effect.uninterruptible(

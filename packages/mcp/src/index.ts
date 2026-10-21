@@ -83,14 +83,14 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("compress_model", {
     description:
-      "Losslessly compact a self-contained GLB 2.0 JSON chunk. Preserve binary data and decoder requirements; no quantization or texture changes. May retain original bytes. Poll job_status.",
+      "Losslessly compact a self-contained GLB 2.0 JSON chunk. Preserve binary data and decoder requirements; no quantization or texture changes. May retain original bytes. Automatically generates six default 16:9 quality-80 WebP posters; Chrome is required for rendering. Poster failure retains the model and reports partial. Poll job_status.",
     parameters: submission(ModelCompressionRequest.fields),
     success,
     failure,
   }).annotate(Tool.Strict, true),
   Tool.make("compress_folder", {
     description:
-      "Recursively compress a folder into a new normalized hierarchy. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional width/height limits preserve ratio; no size preserves original dimensions. Poll job_status.",
+      "Recursively compress a folder into a new normalized hierarchy. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional width/height limits preserve image/video ratio; no size preserves original dimensions. Every processed GLB also generates six default 16:9 quality-80 WebP posters using local Chrome; failed posters retain the model with partial status. Poll job_status.",
     parameters: submission(FolderCompressionRequest.fields),
     success,
     failure,

@@ -43,4 +43,4 @@ Choose output outside the input tree, including resolved symlink ancestors. Pref
 
 Per-file failures permit remaining processing and appear in the manifest. Skips alone do not make a delivery with successful outputs fail. A delivery with no produced files is empty. Folder manifests use schema version 2; legacy version 1 remains readable. The normalized asset root is ready to stage for S3, but this operation does not upload anything.
 
-Folder compression does not render 3D posters. Use the separate [six-angle poster operation](3d-models.md#six-angle-posters) for explicitly requested GLB previews.
+Folder compression automatically renders six default quality-80 WebP posters per successfully processed GLB. See [3D models](3d-models.md#six-angle-posters).

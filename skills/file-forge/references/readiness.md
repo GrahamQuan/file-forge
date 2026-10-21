@@ -24,7 +24,7 @@ Requirements in the verified implementation:
 - Node.js >=22.13; Node 24 is the documented development/runtime choice. Use a compatible existing installation first. For GUI-launched MCP, configure an absolute Node directory in PATH rather than assuming shell initialization runs.
 - FFmpeg is required by FileForge startup, even for its image workflows. Select an existing binary via PATH or absolute `FFMPEG_PATH`. FFprobe is required for audio processing and useful for video verification. It normally accompanies FFmpeg; set `FFPROBE_PATH` if its location differs.
 - Sharp and the vector tracer ship with the runtime; do not install `cwebp`, ImageMagick, Python packages or gltfpack for FileForge operations.
-- Only 3D posters require Chrome/Chromium. Reuse macOS Chrome or Edge in `/Applications`, or an absolute `FILE_FORGE_CHROME_PATH`. The runtime includes Three.js/Puppeteer Core but does not download a browser. Follow the stop-and-ask rule for missing browser installation; ordinary model compression does not require one.
+- Only 3D posters require Chrome/Chromium. Reuse macOS Chrome or Edge in `/Applications`, or an absolute `FILE_FORGE_CHROME_PATH`. The runtime includes Three.js/Puppeteer Core but does not download a browser. Follow the stop-and-ask rule for missing browser installation; model compression and folders containing GLBs now need one for their automatic posters.
 - pnpm is needed for a source build, not a published runtime archive.
 - Codex CLI or supported plugin-management tools are needed for automated plugin installation.
 

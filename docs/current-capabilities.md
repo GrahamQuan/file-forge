@@ -27,7 +27,7 @@ Folder compression normalizes output path components to lowercase ASCII letters/
 
 Audio/music: `audio compress` / `compress_audio`. GLB: `model compress` / `compress_model`. Both also dispatch inside folders; see [lossless policy and limits](lossless-audio-models.md).
 
-Manifest versions: v1 inspection/image/video/export, v2 folder delivery, v3 source-folder rename receipt. v4 covers audio/model deliveries and mixed folders. v5 covers six-angle model posters. Readers/re-export accept all five. Failures, skips and current rename paths must be read from the result, not inferred from process exit alone.
+Manifest versions: v1 inspection/image/video/export, v2 folder delivery, v3 source-folder rename receipt. v4 covers audio/model deliveries and mixed folders. v5 covers six-angle model posters. v6 covers model/folder deliveries with automatic posters. Readers/re-export accept all six. Failures, skips and current rename paths must be read from the result, not inferred from process exit alone.
 
 ## Distribution and remaining work
 
@@ -37,7 +37,7 @@ Not implemented as FileForge CLI/MCP features: S3 uploads, durable job storage, 
 
 Video covers use the same basename as their MP4: standalone `video.mp4` / `video.webp`, or the normalized source basename in folder deliveries. Cover/image path collisions fail folder preflight before output creation.
 
-3D posters: `model posters` / `generate_model_posters` renders six axis-aligned quality-80 lossy WebPs from self-contained GLB using Three.js and external Chrome/Chromium. Transparent 16:9 canvas (1024×576) by default; `--ratio W:H` selects another ratio, one dimension derives the other and both set canvas dimensions (16–4096). Independent of folder/model compression; sources are unchanged. See [poster contract](model-posters.md).
+3D posters: `model posters` / `generate_model_posters` renders six axis-aligned quality-80 lossy WebPs from self-contained GLB using Three.js and external Chrome/Chromium. Transparent 16:9 canvas (1024×576) by default; `--ratio W:H` selects another ratio, one dimension derives the other and both set canvas dimensions (16–4096). Also generated automatically by model/folder compression; sources are unchanged. See [poster contract](model-posters.md).
 
 The skill also supports [custom Sharp/FFmpeg processing](custom-processing.md) through authorized host tools. Codex chooses this route when built-in presets do not fit. This extends the skill’s workflows, not the CLI/MCP command schema; direct jobs have their own process tracking and output verification.
 

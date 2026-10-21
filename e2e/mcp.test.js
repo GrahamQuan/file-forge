@@ -566,7 +566,9 @@ test("MCP runs lossless audio and model operations through scoped workers", asyn
       );
       const job = await terminal(client, kind);
       assert.equal(job.status, "succeeded", JSON.stringify(job));
-      assert.equal(job.result.schemaVersion, 4);
+      assert.equal(job.result.schemaVersion, kind === "model" ? 6 : 4);
+      if (kind === "model")
+        assert.equal(job.result.assets.filter((a) => a.view && a.status === "succeeded").length, 6);
       assert.equal(job.result.assets[0].lossless, true);
       if (kind === "model")
         assert.deepEqual(

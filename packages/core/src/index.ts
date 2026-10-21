@@ -89,6 +89,11 @@ export const ManifestSchema = Schema.Union([
   LegacyManifestSchema,
   Schema.Struct({
     ...LegacyManifestSchema.fields,
+    schemaVersion: Schema.Literal(6),
+    operation: Schema.Literals(["model", "folder"]),
+  }),
+  Schema.Struct({
+    ...LegacyManifestSchema.fields,
     schemaVersion: Schema.Literal(5),
     operation: Schema.Literal("model-posters"),
   }),

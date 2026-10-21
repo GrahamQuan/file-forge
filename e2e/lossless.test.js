@@ -116,6 +116,19 @@ test("audio and GLB CLI/folder deliveries preserve quality and report unchanged 
       original = await makeGlb();
     await writeFile(model, original);
     const modelResult = run("model", "compress", model, "--output", output);
+    assert.equal(modelResult.schemaVersion, 6);
+    assert.equal(modelResult.assets.length, 7);
+    assert.ok(
+      modelResult.assets
+        .slice(1)
+        .every(
+          (a) =>
+            a.status === "succeeded" &&
+            a.lossless === false &&
+            a.outputWidth === 1024 &&
+            a.outputHeight === 576,
+        ),
+    );
     const optimized = await readFile(modelResult.assets[0].output);
     assert.ok(optimized.length < original.length);
     assert.deepEqual(glbContent(optimized), glbContent(original));
@@ -125,9 +138,54 @@ test("audio and GLB CLI/folder deliveries preserve quality and report unchanged 
     assert.equal(repeated.optimization, "original-retained");
     assert.deepEqual(await readFile(repeated.output), optimized);
     const folder = run("folder", "compress", input, "--width", "50", "--output", output);
-    assert.equal(folder.schemaVersion, 4);
-    assert.equal(folder.assets.length, 5);
-    assert.ok(folder.assets.every((a) => a.lossless && a.outputSize <= a.size));
+    assert.equal(folder.schemaVersion, 6);
+    assert.equal(folder.assets.length, 11);
+    assert.equal(folder.assets.filter((a) => a.view && a.status === "succeeded").length, 6);
+    assert.ok(
+      folder.assets.filter((a) => !a.view).every((a) => a.lossless && a.outputSize <= a.size),
+    );
+    for (const [command, source] of [
+      ["model", model],
+      ["folder", input],
+    ]) {
+      const failedPosters = spawnSync(
+        process.execPath,
+        [
+          resolve("packages/cli/bin/file-forge.js"),
+          command,
+          "compress",
+          source,
+          "--output",
+          join(root, "no-browser"),
+          "--json",
+        ],
+        {
+          encoding: "utf8",
+          timeout: 30000,
+          env: {
+            ...process.env,
+            FILE_FORGE_CHROME_PATH: join(root, "missing-browser"),
+            FILE_FORGE_CONFIG_DIR: join(root, "config"),
+          },
+        },
+      );
+      assert.notEqual(failedPosters.status, 0);
+      const partial = JSON.parse(failedPosters.stdout);
+      assert.equal(partial.status, "partial");
+      assert.ok(partial.assets.some((a) => a.kind === "model" && a.status === "succeeded"));
+      assert.ok(partial.assets.some((a) => a.view && a.errorCode === "POSTER_BROWSER_REQUIRED"));
+      const exportedPartial = cli(
+        "manifest",
+        "export",
+        "--manifest",
+        join(partial.directory, "manifest.json"),
+        "--output",
+        output,
+        "--include-paths",
+      );
+      assert.equal(exportedPartial.status, 1);
+      assert.deepEqual(JSON.parse(exportedPartial.stdout).assets, partial.assets);
+    }
     const malformed = join(root, "bad.glb");
     await writeFile(malformed, original.subarray(0, 30));
     assert.notEqual(cli("model", "compress", malformed, "--output", output).status, 0);

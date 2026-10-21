@@ -31,8 +31,8 @@ Folder processing applies this policy to recognized audio and GLB files, alongsi
 
 MCP tools accept `operation: "audio-compress"` or `"model-compress"`, `input`, `output`, and a unique `requestId`. They run through the same scoped, cancellable worker and root checks as other jobs. Poll `job_status` until terminal. No arbitrary encoder arguments are exposed.
 
-New single-file deliveries and folders containing audio/models use schema v4. Existing v1/v2/v3 manifests remain readable and exportable. Assets record `lossless`, `optimization`, optional `note`, source/output sizes and `sizeChange`; audio also records sample rate, channels and available bit depth. `lossless` applies to each audio/model asset, not to other images/videos in a mixed folder. Read actual sizes and the optimization result before reporting savings.
+Audio deliveries and folders with audio but no GLB use schema v4. Model deliveries and folders containing GLBs use schema v6, including automatic posters. Existing v1–v5 manifests remain readable and exportable. Assets record `lossless`, `optimization`, optional `note`, source/output sizes and `sizeChange`; audio also records sample rate, channels and available bit depth. `lossless` applies to each audio/model asset, not to other images/videos in a mixed folder. Read actual sizes and the optimization result before reporting savings.
 
 Validation uses real CLI and MCP jobs: 16/24-bit PCM decoded-sample equality, floating-point/MP3 byte preservation, animated/textured GLB JSON and binary preservation, unchanged outcomes, manifest round trips, malformed/external inputs, folder collisions, and worker/staging cleanup. No UI testing is required.
 
-For rendered model previews, use the separate [six-angle poster workflow](model-posters.md). It leaves the GLB unchanged and emits quality-80 lossy WebP derivatives; neither compression command automatically generates them.
+For rendered model previews, use the separate [six-angle poster workflow](model-posters.md). It leaves the GLB unchanged and emits quality-80 lossy WebP derivatives; model and folder compression automatically generate six default views per GLB.
