@@ -1,9 +1,11 @@
 # Six-angle 3D posters
 
-`model posters` / `generate_model_posters` renders a self-contained GLB 2.0 into six lossless WebP images: front, back, left, right, top and bottom. The model is never modified. This is a separate operation from model or folder compression; compression does not generate posters automatically. Check installed help/tool schemas before assuming a release has this source capability.
+`model posters` / `generate_model_posters` renders a self-contained GLB 2.0 into six lossless WebP images: front, back, left, right, top and bottom. Each view renders to a temporary lossless PNG and then runs through the shared image-processing workflow: orientation handling, no additional resize, lossless WebP encoding, output validation and exclusive publication. The model is never modified. This is a separate operation from model or folder compression; compression does not generate posters automatically. Check installed help/tool schemas before assuming a release has this source capability.
 
 ```sh
 file-forge model posters "/absolute/My Model.glb" --json
+file-forge model posters "/absolute/My Model.glb" --ratio 9:16 --json
+file-forge model posters "/absolute/My Model.glb" --ratio 1:1 --width 800 --json
 file-forge model posters "/absolute/My Model.glb" --width 1200 --height 800 --output "/absolute/delivery" --json
 ```
 
@@ -23,7 +25,7 @@ The stem uses lowercase ASCII letters, numbers and hyphens (up to 180 characters
 
 ## Dimensions, cameras and appearance
 
-Unlike resizing an existing image/video, a 3D render has no original pixel dimensions. The default canvas is 1024 × 1024. One supplied dimension makes a square canvas; both supplied dimensions set the exact canvas. Each dimension must be an integer from 16 through 4096. This does not restore any resize fallback for existing images/videos.
+Unlike resizing an existing image/video, a 3D render has no original pixel dimensions. The default ratio is 16:9, producing 1024 × 576. Use `--ratio W:H` (MCP `options.ratio`) for any positive ratio, including 9:16, 1:1, 3:2 or 1.5:1. With no dimensions, the longer edge is 1024 (9:16 gives 576 × 1024; 1:1 gives 1024 × 1024). With one dimension, derive the other from the ratio, defaulting to 16:9, and round to the nearest whole pixel. With both dimensions, they define the exact canvas; if a ratio is explicitly supplied, height must equal the nearest integer to width divided by that ratio. Conflicts and derived dimensions outside the supported range fail before creating a delivery. Each dimension must be an integer from 16 through 4096. This does not restore any resize fallback for existing images/videos.
 
 All views use orthographic projection, shared scale and centered bounding-sphere framing with 10% padding, a transparent background, neutral room-environment lighting and the model's default scene/pose. Animation is not played. Imported cameras and lights are ignored. Materials and embedded textures are loaded by Three.js; rendering and tone mapping can differ from another viewer. Lossless WebP means no additional lossy image encoding after rendering; it does not mean a 2D poster preserves all 3D information.
 
@@ -40,7 +42,7 @@ Labels follow the model's coordinate axes, not a guess about its semantic front.
 
 ## Dependencies and supported input
 
-FileForge still requires Node.js and FFmpeg at startup. Poster generation additionally needs a local Chrome/Chromium-compatible browser; it is not bundled or downloaded automatically. Three.js, its Draco/Meshopt decoders and Puppeteer Core are packaged dependencies. Sharp encodes the rendered pixels with `lossless: true`.
+FileForge still requires Node.js and FFmpeg at startup. Poster generation additionally needs a local Chrome/Chromium-compatible browser; it is not bundled or downloaded automatically. Three.js, its Draco/Meshopt decoders and Puppeteer Core are packaged dependencies. The shared Sharp image workflow encodes the rendered pixels with `lossless: true`; it does not apply the ordinary quality-80 compression preset or perform a second WebP encoding.
 
 On macOS the renderer discovers Google Chrome or Microsoft Edge in `/Applications`. Set `FILE_FORGE_CHROME_PATH` to an absolute browser executable for another location; for example:
 
@@ -68,8 +70,8 @@ Submit `generate_model_posters` and poll `job_status` using the same request ID:
 
 `options` is optional. All paths must remain inside the configured MCP root. `job_cancel` stays available while rendering runs in a worker.
 
-Deliveries use manifest schema v5, operation `model-posters`. Assets record `view`, `camera`, output dimensions/format/size, `lossless: true` and `optimization: "rendered-poster"`. Parameters record canvas, renderer/browser versions, projection, orientation, pose, lighting and encoding. Readers and export preserve versions 1–5. Rendered images are new derivatives; do not present their size difference from the GLB as compression savings.
+Deliveries use manifest schema v5, operation `model-posters`. Assets record `view`, `camera`, output dimensions/format/size, `lossless: true` and `optimization: "rendered-poster"`. Parameters record the selected ratio, actual canvas, renderer/browser versions, projection, orientation, pose, lighting and encoding. `parameters.image` records `workflow: "process-image"`, `format: "webp"`, `encoding: "lossless"` and `resize: "none"`. Readers and export preserve versions 1–5. Rendered images are new derivatives; do not present their size difference from the GLB as compression savings.
 
-Completed views are published incrementally and retained after a later failure or cancellation. Inspect per-view status: failed views carry an error code and unrendered views are skipped. Missing browser reports `POSTER_BROWSER_REQUIRED`; unsupported input reports `POSTER_UNSUPPORTED_MODEL`; launch/render failures report `POSTER_RENDER_FAILED`; deadline failures report `POSTER_TIMEOUT`. Use those codes to diagnose the prerequisite or input and propose a solution before retrying. Do not silently install a browser, change model materials or switch to lossy encoding.
+Completed views are published incrementally and retained after a later failure or cancellation. Inspect per-view status: failed views carry an error code and unrendered views are skipped. Missing browser reports `POSTER_BROWSER_REQUIRED`; unsupported input reports `POSTER_UNSUPPORTED_MODEL`; launch/render failures report `POSTER_RENDER_FAILED`; deadline failures report `POSTER_TIMEOUT`; shared image-processing failures report `IMAGE_FAILED`. Use those codes to diagnose the prerequisite or input and propose a solution before retrying. Do not silently install a browser, change model materials or switch to lossy encoding.
 
-Validation uses real CLI/MCP media jobs and checks six face colors, transparent/lossless WebP encoding, dimensions, source integrity, manifest export, rejection paths, cancellation and owned-browser cleanup. These are non-UI E2E checks, not screenshot comparisons.
+Validation uses real CLI/MCP media jobs and checks pixel equality between rendered PNG and processed WebP, six face colors, transparent/lossless WebP encoding, dimensions, source integrity, manifest export, rejection paths, cancellation and owned-browser cleanup. These are non-UI E2E checks, not screenshot comparisons.

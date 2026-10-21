@@ -605,8 +605,12 @@ test("MCP renders default and single-axis posters and cancels with browser clean
     client = await connect(root);
     await initialize(client);
     for (const [id, options, size] of [
-      ["default", undefined, 1024],
-      ["height", { height: 64 }, 64],
+      ["default", undefined, [1024, 576]],
+      ["height", { height: 64 }, [114, 64]],
+      ["portrait", { ratio: "9:16", height: 96 }, [54, 96]],
+      ["ratio-only", { ratio: "9:16" }, [576, 1024]],
+      ["custom", { ratio: "1.5:1", width: 96 }, [96, 64]],
+      ["square", { ratio: "1:1", width: 64 }, [64, 64]],
     ]) {
       const request = {
         requestId: id,
@@ -622,7 +626,7 @@ test("MCP renders default and single-axis posters and cancels with browser clean
       assert.equal(job.result.assets.length, 6);
       for (const asset of job.result.assets) {
         const meta = await sharp(asset.output).metadata();
-        assert.deepEqual([meta.width, meta.height], [size, size]);
+        assert.deepEqual([meta.width, meta.height], size);
       }
     }
     const output = join(root, "cancel");

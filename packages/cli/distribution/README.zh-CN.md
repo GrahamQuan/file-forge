@@ -41,6 +41,8 @@ GitHub Actions 会发布经过验证的补丁版本，并提供单独的匹配�
 
 音频/音乐压缩严格无损，需要 FFprobe（PATH、配置的 FFmpeg 同目录或 FFPROBE_PATH）。符合条件的 PCM/FLAC 仅在验证后体积更小时转为 FLAC；其他输入保留原字节。自包含 GLB 2.0 仅压缩 JSON 空白，二进制数据不变。文件夹处理包含这两类素材，使用版本 4 清单。现有图片/视频预设仍为有损。
 
-使用 `file-forge model posters INPUT.glb --width 1024 --json` 生成前、后、左、右、上、下六张无损 WebP。透明画布默认 1024 正方形；一个尺寸生成正方形，两个尺寸设定确切画布（16–4096）。源文件不变。该独立流程需要本机 Chrome/Chromium，自动发现 macOS Chrome/Edge，或通过绝对路径 `FILE_FORGE_CHROME_PATH` 配置；不内置浏览器。已包含 Three.js 和 Puppeteer Core。仅支持不超过 256 MiB 的自包含 GLB；外部资源、KTX2/Basis 和未知扩展会被拒绝。版本 5 清单记录各视图与相机；版本 1–5 均可导出。模型/文件夹压缩不会生成海报。
+使用 `file-forge model posters INPUT.glb --width 1024 --json` 生成前、后、左、右、上、下六张无损 WebP。透明画布默认 16:9（1024×576）；--ratio W:H 可选其他比例，一个尺寸按比例推算另一边，两个尺寸确定画布（16–4096；与明确比例冲突时拒绝处理）。源文件不变。该独立流程需要本机 Chrome/Chromium，自动发现 macOS Chrome/Edge，或通过绝对路径 `FILE_FORGE_CHROME_PATH` 配置；不内置浏览器。已包含 Three.js 和 Puppeteer Core。仅支持不超过 256 MiB 的自包含 GLB；外部资源、KTX2/Basis 和未知扩展会被拒绝。版本 5 清单记录各视图与相机；版本 1–5 均可导出。模型/文件夹压缩不会生成海报。
 
 配套 skill 也可为内置预设之外的需求选择直接使用 Sharp/FFmpeg。此路线需要获准的宿主执行能力与相关依赖，保留源文件并验证产物。这是智能体编排，不是任意命令 CLI/MCP 接口或 FileForge 管理的任务。缺少工具、关键信息不明确或处理失败时，会提出解决方案并请求用户决定。
+
+3D 海报会在交付前自动将每张渲染的 PNG 送入共享图片处理流程，保留画布尺寸并编码为无损 WebP。不额外应用质量 80 的压缩步骤。

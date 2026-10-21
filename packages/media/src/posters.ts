@@ -1,7 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { Context, Data, Effect, FileSystem, Layer, Path, Schema } from "effect";
 import puppeteer, { type Browser } from "puppeteer-core";
-import sharp from "sharp";
 import { posterScene } from "./poster-scene.js";
 
 export const posterViews = ["front", "back", "left", "right", "top", "bottom"] as const;
@@ -13,6 +12,7 @@ const dimension = Schema.Number.check(
 export const PosterOptionsSchema = Schema.Struct({
   width: Schema.optional(dimension),
   height: Schema.optional(dimension),
+  ratio: Schema.optional(Schema.String.check(Schema.isPattern(/^\d+(?:\.\d+)?:\d+(?:\.\d+)?$/))),
 });
 export type PosterOptions = typeof PosterOptionsSchema.Type;
 export class PosterError extends Data.TaggedError("PosterError")<{
@@ -31,13 +31,52 @@ export const validatePosterOptions = (value: unknown) =>
       () =>
         new PosterError({
           code: "INVALID_INPUT",
-          detail: "Poster width/height must be integers from 16 through 4096",
+          detail:
+            "Poster dimensions must be integers from 16 through 4096 and ratio must be positive W:H",
         }),
     ),
-    Effect.map((options) => ({
-      width: options.width ?? options.height ?? 1024,
-      height: options.height ?? options.width ?? 1024,
-    })),
+    Effect.flatMap((options) =>
+      Effect.try({
+        try: () => {
+          const ratio =
+            options.ratio ??
+            (options.width !== undefined && options.height !== undefined
+              ? `${options.width}:${options.height}`
+              : "16:9");
+          const [horizontal, vertical] = ratio.split(":").map(Number) as [number, number];
+          const aspect = horizontal / vertical;
+          if (![horizontal, vertical, aspect].every((value) => Number.isFinite(value) && value > 0))
+            throw new Error("Invalid ratio");
+          const width =
+            options.width ??
+            (options.height !== undefined
+              ? Math.round(options.height * aspect)
+              : Math.round(1024 * Math.min(aspect, 1)));
+          const height =
+            options.height ??
+            (options.width === undefined && aspect < 1 ? 1024 : Math.round(width / aspect));
+          if (
+            ![width, height].every(
+              (value) => Number.isInteger(value) && value >= 16 && value <= 4096,
+            )
+          )
+            throw new Error("Derived dimension out of range");
+          if (
+            options.ratio !== undefined &&
+            options.width !== undefined &&
+            options.height !== undefined &&
+            Math.round(width / aspect) !== height
+          )
+            throw new Error("Dimensions conflict with ratio");
+          return { width, height, ratio };
+        },
+        catch: () =>
+          new PosterError({
+            code: "INVALID_INPUT",
+            detail: "Use a positive W:H ratio with compatible dimensions from 16 through 4096",
+          }),
+      }),
+    ),
   );
 export class PosterConfig extends Context.Service<PosterConfig, { readonly executable?: string }>()(
   "@file-forge/media/PosterConfig",
@@ -296,16 +335,14 @@ export const openPosterRenderer = (input: string, staging: string, options: Post
             }>,
         );
         const png = Buffer.from(frame.png, "base64");
-        const webp = yield* Effect.uninterruptible(
-          native(() => sharp(png).webp({ lossless: true, effort: 6 }).toBuffer()),
-        );
-        yield* fs.writeFile(output, webp, { flag: "wx" });
+        // Keep the render lossless; the shared image workflow owns final encoding/publication.
+        yield* fs.writeFile(output, png, { flag: "wx" });
         return {
           view,
           output,
           width: dimensions.width,
           height: dimensions.height,
-          size: webp.length,
+          size: png.length,
           camera: {
             position: frame.position,
             target: frame.target,

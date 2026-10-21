@@ -34,6 +34,8 @@ test("CLI renders six lossless axis posters, preserves sources and cleans owned 
         "model",
         "posters",
         input,
+        "--ratio",
+        "3:2",
         "--width",
         "96",
         "--height",
@@ -61,6 +63,13 @@ test("CLI renders six lossless axis posters, preserves sources and cleans owned 
     assert.ok(dead(child.pid));
     const result = JSON.parse(stdout);
     assert.equal(result.schemaVersion, 5);
+    assert.equal(result.parameters.poster.ratio, "3:2");
+    assert.deepEqual(result.parameters.image, {
+      format: "webp",
+      encoding: "lossless",
+      resize: "none",
+      workflow: "process-image",
+    });
     assert.equal(result.status, "succeeded");
     const views = ["front", "back", "left", "right", "top", "bottom"];
     assert.deepEqual(
@@ -144,6 +153,28 @@ test("CLI renders six lossless axis posters, preserves sources and cleans owned 
     );
     assert.equal(missing.status, 1);
     assert.equal(JSON.parse(missing.stdout).assets[0].errorCode, "POSTER_BROWSER_REQUIRED");
+    for (const ratio of ["0:9", "16:0", "square", "1:999999", "16:9"]) {
+      const rejected = spawnSync(
+        process.execPath,
+        [
+          cli,
+          "model",
+          "posters",
+          input,
+          "--ratio",
+          ratio,
+          "--width",
+          "96",
+          "--height",
+          "64",
+          "--output",
+          output,
+          "--json",
+        ],
+        { env, encoding: "utf8", timeout: 30000 },
+      );
+      assert.equal(rejected.status, 2, `reject incompatible ratio ${ratio}`);
+    }
     const bad = spawnSync(
       process.execPath,
       [cli, "model", "posters", input, "--width", "0", "--output", output, "--json"],
@@ -206,6 +237,52 @@ test("failed rendering closes its browser and retains a failure manifest", async
       child.kill("SIGTERM");
       await closed;
     }
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("rendered PNG passes through the shared image workflow without changing pixels", async () => {
+  const { Effect, FileSystem, Layer } = await import("effect");
+  const { NodeServices } = await import("@effect/platform-node");
+  const { openPosterRenderer, posterLayer, ImageEngineLive, processImage } =
+    await import("@file-forge/media");
+  const root = await mkdtemp(join(tmpdir(), "file-forge-poster-image-"));
+  try {
+    const input = join(root, "box.glb"),
+      frame = join(root, "front.png"),
+      output = join(root, "front.webp");
+    await writeFile(input, makePosterGlb());
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const staging = yield* fs.makeTempDirectoryScoped({
+            directory: root,
+            prefix: ".posters-",
+          });
+          const renderer = yield* openPosterRenderer(input, staging, { width: 80, height: 64 });
+          yield* renderer.render("front", frame);
+          const image = yield* processImage(frame, output, { format: "webp" }, "lossless-webp");
+          return { pid: renderer.pid, image };
+        }),
+      ).pipe(Effect.provide(Layer.mergeAll(NodeServices.layer, ImageEngineLive, posterLayer()))),
+    );
+    assert.ok(dead(result.pid));
+    assert.deepEqual(
+      [result.image.width, result.image.height, result.image.format],
+      [80, 64, "webp"],
+    );
+    assert.deepEqual(
+      await sharp(output).ensureAlpha().raw().toBuffer(),
+      await sharp(frame).ensureAlpha().raw().toBuffer(),
+    );
+    assert.equal((await readFile(output)).toString("ascii", 12, 16), "VP8L");
+    assert.ok(
+      !(await readdir(root)).some(
+        (name) => name.startsWith(".posters-") || name.startsWith(".file-forge-"),
+      ),
+    );
+  } finally {
     await rm(root, { recursive: true, force: true });
   }
 });

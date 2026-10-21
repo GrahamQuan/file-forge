@@ -187,6 +187,7 @@ export const commands = (
                   output,
                   width: Flag.Int("width").pipe(Flag.optional),
                   height: Flag.Int("height").pipe(Flag.optional),
+                  ratio: Flag.String("ratio").pipe(Flag.optional),
                 },
                 (args) =>
                   Effect.gen(function* () {
@@ -197,6 +198,7 @@ export const commands = (
                       options: {
                         ...(Option.isSome(args.width) ? { width: args.width.value } : {}),
                         ...(Option.isSome(args.height) ? { height: args.height.value } : {}),
+                        ...(Option.isSome(args.ratio) ? { ratio: args.ratio.value } : {}),
                       },
                     }).pipe(Effect.flatMap(emit));
                   }),

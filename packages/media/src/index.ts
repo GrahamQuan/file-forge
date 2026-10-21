@@ -31,6 +31,9 @@ export const validateImageOptions = (value: unknown) =>
     ),
   );
 
+// Internal workflow policy; CLI/MCP image options retain their existing defaults.
+export type ImageEncodingPolicy = "standard" | "lossless-webp";
+
 export class ImageEngine extends Context.Service<
   ImageEngine,
   {
@@ -39,6 +42,7 @@ export class ImageEngine extends Context.Service<
       input: string,
       output: string,
       options: ImageOptions,
+      encoding?: ImageEncodingPolicy,
     ) => Effect.Effect<OutputInfo, MediaError>;
   }
 >()("@file-forge/media/ImageEngine") {}
@@ -58,7 +62,7 @@ const sharpEffect = <A>(run: () => Promise<A>) =>
   );
 export const ImageEngineLive = Layer.succeed(ImageEngine, {
   inspect: (input) => sharpEffect(() => sharp(input).metadata()),
-  process: (input, output, options) =>
+  process: (input, output, options, encoding = "standard") =>
     sharpEffect(() => {
       let image = sharp(input).rotate();
       if (options.width !== undefined || options.height !== undefined) {
@@ -69,6 +73,8 @@ export const ImageEngineLive = Layer.succeed(ImageEngine, {
           withoutEnlargement: true,
         });
       }
+      if (encoding === "lossless-webp")
+        return image.webp({ lossless: true, effort: 6 }).toFile(output);
       return image
         .toFormat(options.format ?? "webp", { quality: options.quality ?? 80 })
         .toFile(output);
@@ -76,9 +82,23 @@ export const ImageEngineLive = Layer.succeed(ImageEngine, {
 });
 export const inspectImage = (input: string) =>
   Effect.flatMap(ImageEngine, (engine) => engine.inspect(input));
-export const processImage = (input: string, output: string, options: ImageOptions = {}) =>
+export const processImage = (
+  input: string,
+  output: string,
+  options: ImageOptions = {},
+  encoding: ImageEncodingPolicy = "standard",
+) =>
   Effect.gen(function* () {
     const validated = yield* validateImageOptions(options);
+    if (
+      encoding === "lossless-webp" &&
+      (validated.quality !== undefined ||
+        (validated.format !== undefined && validated.format !== "webp"))
+    )
+      return yield* new MediaError({
+        code: "INVALID_INPUT",
+        detail: "Lossless WebP processing cannot use a different format or lossy quality setting",
+      });
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const source = yield* fs.realPath(input);
@@ -100,7 +120,7 @@ export const processImage = (input: string, output: string, options: ImageOption
         });
         const temporary = path.join(staging, "image");
         const engine = yield* ImageEngine;
-        const result = yield* engine.process(source, temporary, validated);
+        const result = yield* engine.process(source, temporary, validated, encoding);
         yield* engine.inspect(temporary);
         yield* fs.link(temporary, destination);
         return result;

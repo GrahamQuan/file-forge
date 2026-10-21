@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { Effect, FileSystem, Path } from "effect";
 import {
   openPosterRenderer,
+  processImage,
   posterViews,
   validatePosterOptions,
   type PosterOptions,
@@ -49,6 +50,7 @@ export const generateModelPosters = (input: string, options: PosterOptions, pare
       status: "failed",
       parameters: {
         recursive: false,
+        image: { format: "webp", encoding: "lossless", resize: "none", workflow: "process-image" },
         poster: {
           ...dimensions,
           format: "webp",
@@ -90,11 +92,18 @@ export const generateModelPosters = (input: string, options: PosterOptions, pare
         };
         for (let index = 0; index < posterViews.length; index++) {
           const view = posterViews[index]!;
-          const result = yield* renderer.render(view, path.join(staging, `${view}.webp`));
+          const result = yield* renderer.render(view, path.join(staging, `${view}.png`));
+          const processedPath = path.join(staging, `${view}.webp`);
+          const processed = yield* processImage(
+            result.output,
+            processedPath,
+            { format: "webp" },
+            "lossless-webp",
+          );
           yield* Effect.uninterruptible(
             Effect.gen(function* () {
               const output = path.join(directory, `${stem}-${view}.webp`);
-              yield* fs.link(result.output, output);
+              yield* fs.link(processedPath, output);
               const assets: Asset[] = [...manifest.assets];
               assets[index] = {
                 assetId: assets[index]!.assetId,
@@ -105,10 +114,10 @@ export const generateModelPosters = (input: string, options: PosterOptions, pare
                 view,
                 camera: result.camera,
                 output,
-                outputSize: result.size,
+                outputSize: processed.size,
                 outputFormat: "webp",
-                outputWidth: result.width,
-                outputHeight: result.height,
+                outputWidth: processed.width,
+                outputHeight: processed.height,
                 lossless: true,
                 optimization: "rendered-poster",
               };

@@ -37,6 +37,8 @@ Not implemented as FileForge CLI/MCP features: S3 uploads, durable job storage, 
 
 Video covers use the same basename as their MP4: standalone `video.mp4` / `video.webp`, or the normalized source basename in folder deliveries. Cover/image path collisions fail folder preflight before output creation.
 
-3D posters: `model posters` / `generate_model_posters` renders six axis-aligned lossless WebPs from self-contained GLB using Three.js and external Chrome/Chromium. Transparent 1024-square canvas by default; one dimension makes a square, both set canvas dimensions (16–4096). Independent of folder/model compression; sources are unchanged. See [poster contract](model-posters.md).
+3D posters: `model posters` / `generate_model_posters` renders six axis-aligned lossless WebPs from self-contained GLB using Three.js and external Chrome/Chromium. Transparent 16:9 canvas (1024×576) by default; `--ratio W:H` selects another ratio, one dimension derives the other and both set canvas dimensions (16–4096). Independent of folder/model compression; sources are unchanged. See [poster contract](model-posters.md).
 
 The skill also supports [custom Sharp/FFmpeg processing](custom-processing.md) through authorized host tools. Codex chooses this route when built-in presets do not fit. This extends the skill’s workflows, not the CLI/MCP command schema; direct jobs have their own process tracking and output verification.
+
+Each 3D poster is rendered to a temporary PNG and automatically processed through the shared image workflow before delivery: lossless WebP, no additional resizing, output validation and exclusive publication. Ordinary image compression keeps its existing defaults; no manual second compression pass is needed.
