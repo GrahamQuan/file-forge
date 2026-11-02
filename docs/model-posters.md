@@ -42,7 +42,7 @@ Labels follow the model's coordinate axes, not a guess about its semantic front.
 
 ## Dependencies and supported input
 
-FileForge still requires Node.js and FFmpeg at startup. Poster generation additionally needs a local Chrome/Chromium-compatible browser; it is not bundled or downloaded automatically. Three.js, its Draco/Meshopt decoders and Puppeteer Core are packaged dependencies. The shared Sharp image workflow applies the ordinary WebP quality-80 compression preset once, preserving transparency and canvas dimensions.
+Media operations require Node.js and FFmpeg. Poster generation additionally needs a local Chrome/Chromium-compatible browser; it is not bundled or downloaded automatically. Three.js, its Draco/Meshopt decoders and Puppeteer Core are packaged dependencies. The shared Sharp image workflow applies the ordinary WebP quality-80 compression preset once, preserving transparency and canvas dimensions.
 
 On macOS the renderer discovers Google Chrome or Microsoft Edge in `/Applications`. Set `FILE_FORGE_CHROME_PATH` to an absolute browser executable for another location; for example:
 

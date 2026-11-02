@@ -41,7 +41,7 @@ Static supported images become WebP; mp4/mov/m4v/webm/mkv/avi become MP4 with sa
 
 Choose output outside the input tree, including resolved symlink ancestors. Preflight rejects empty normalized stems and destination collisions, including generated covers or different image formats collapsing to one WebP. Do not overwrite, append invented suffixes, or rename source files to bypass a collision. Show the conflicting names and ask for the necessary naming decision.
 
-Per-file failures permit remaining processing and appear in the manifest. Skips alone do not make a delivery with successful outputs fail. A delivery with no produced files is empty. Folder manifests use v2 normally, v4 when audio is present, or v6 when selected GLBs generate posters; older manifests remain readable. The normalized asset root is ready to stage for S3, but this operation does not upload anything.
+Per-file failures permit remaining processing and appear in the manifest. Skips alone do not make a delivery with successful outputs fail. A delivery with no produced files is empty. Folder manifests use v2 normally, v4 when audio is present, or v6 when selected GLBs generate posters; older manifests remain readable. The normalized asset root may be selected in a separate [R2 upload plan](uploads.md); compression never uploads. Default-named private upload configuration is skipped as PRIVATE_CONFIG_SKIPPED.
 
 Folder compression automatically renders six default quality-80 WebP posters per successfully processed GLB. See [3D models](3d-models.md#six-angle-posters).
 
