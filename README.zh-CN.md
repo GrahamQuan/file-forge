@@ -126,3 +126,5 @@ CLI 上传进度在 stderr 显示每个文件及按字节加权的总百分比�
 上传到存储桶前，请先用 `upload config check --project KEY` 检查私密项目 JSON。配置缺失或不完整时，CLI 会停止上传流程，在 stderr 提示用户在本机配置后退出，不会等待输入凭据。
 
 使用 `file-forge upload folders --project KEY` 查看该项目配置前缀下的 R2 文件夹树。可用 `--prefix assets` 查看子文件夹，或用 `--json` 输出完整文件夹前缀。
+
+CI 保留全部真实 E2E 校验，使用四组 macOS 分片与 Ubuntu 质量检查并行执行。详见 [CI 调度与必需检查](docs/ci-performance.md)。

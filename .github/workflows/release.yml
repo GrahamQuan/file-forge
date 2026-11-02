@@ -3,97 +3,25 @@ name: Validate and release
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
+# Keep version selection, stamped validation and publication in the same lock.
+# Unlike the default single pending slot, this preserves queued main commits.
 concurrency:
-  group: file-forge-${{ github.event_name == 'pull_request' && github.ref || 'release' }}
+  group: file-forge-release
   cancel-in-progress: false
+  queue: max
 
 jobs:
-  validate:
-    if: github.repository == 'GrahamQuan/file-forge'
-    runs-on: macos-15
-    timeout-minutes: 45
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      skip: ${{ steps.version.outputs.skip }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: pnpm
-      - name: Install prerequisites
-        run: |
-          test "$(uname -m)" = arm64
-          brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
-          test -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" || brew install --cask google-chrome
-          pnpm install --frozen-lockfile
-      - name: Select next patch version
-        id: version
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const releases = await github.paginate(github.rest.repos.listReleases, {...context.repo, per_page: 100});
-            const marker = `Source commit: ${context.sha}`;
-            const existing = releases.find(r => r.body?.split('\n').includes(marker));
-            if (existing) {
-              if (existing.draft) throw new Error(`Incomplete draft ${existing.tag_name}: inspect and recover its assets before retrying. No assets will be overwritten.`);
-              core.setOutput('skip', 'true');
-              return;
-            }
-            const tags = await github.paginate(github.rest.repos.listTags, {...context.repo, per_page: 100});
-            const names = [...tags.map(t => t.name), ...releases.map(r => r.tag_name)];
-            const versions = names.filter(n => /^v\d+\.\d+\.\d+$/.test(n)).map(n => n.slice(1).split('.').map(Number));
-            versions.push([0, 0, 0]);
-            versions.sort((a,b) => b[0]-a[0] || b[1]-a[1] || b[2]-a[2]);
-            const [major, minor, patch] = versions[0];
-            if (![major, minor, patch + 1].every(Number.isSafeInteger)) throw new Error('Invalid release version');
-            core.setOutput('version', `${major}.${minor}.${patch + 1}`);
-      - name: Stamp release build
-        if: steps.version.outputs.version != ''
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          pnpm build
-          node packages/cli/dist/release-version.js "$RELEASE_VERSION"
-      - name: Prepare offline deployment cache
-        run: |
-          pnpm --filter @file-forge/cli deploy --legacy --prod "$RUNNER_TEMP/file-forge-deploy-cache"
-          rm -rf "$RUNNER_TEMP/file-forge-deploy-cache"
-      - name: Validate source and release build
-        run: |
-          pnpm check
-          pnpm test:e2e
-      - name: Package verified runtime
-        if: steps.version.outputs.version != ''
-        run: pnpm package:runtime
-      - name: Save verified artifacts
-        if: steps.version.outputs.version != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: runtime-${{ github.sha }}
-          path: |
-            release/*.tar.gz
-            release/*.zip
-            release/*.sha256
-          if-no-files-found: error
-          retention-days: 14
+  pipeline:
+    uses: ./.github/workflows/validation.yml
 
   publish:
-    needs: validate
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.validate.outputs.version != ''
+    needs: pipeline
+    if: github.workflow == 'Validate and release' && github.ref == 'refs/heads/main' && needs.pipeline.outputs.version != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -106,7 +34,7 @@ jobs:
       - name: Publish complete release
         uses: actions/github-script@v7
         env:
-          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_VERSION: ${{ needs.pipeline.outputs.version }}
         with:
           script: |
             const fs = require('node:fs');

@@ -66,7 +66,12 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
     const packed = successful(
       await run(
         process.execPath,
-        [resolve("packages/cli/dist/archive.js"), "--output", join(root, "archives")],
+        [
+          resolve("packages/cli/dist/archive.js"),
+          "--output",
+          // CI publishes these exact tested archives only after every shard passes.
+          process.env.FILE_FORGE_CI_ARTIFACT_DIR ?? join(root, "archives"),
+        ],
         { ...process.env, FILE_FORGE_UPLOAD_CONFIG: privateConfig },
         process.cwd(),
       ),

@@ -126,3 +126,5 @@ Use `upload apply --progress table` for a progress table, or `--progress lines` 
 For bucket uploads, check the private project JSON first with `upload config check --project KEY`. Missing or incomplete configuration stops upload work; the CLI asks for local setup on stderr and exits without waiting for credential input.
 
 Use `file-forge upload folders --project KEY` to inspect the current R2 folder tree under the project’s configured prefix. Use `--prefix assets` for a subfolder or `--json` for full folder prefixes.
+
+CI keeps all real E2E coverage while running four macOS shards alongside Ubuntu quality checks. See [CI scheduling and required checks](docs/ci-performance.md).
