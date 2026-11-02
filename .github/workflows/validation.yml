@@ -1,0 +1,192 @@
+name: Shared validation
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        description: Verified release version
+        value: ${{ jobs.e2e.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    if: github.repository == 'GrahamQuan/file-forge'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      required: ${{ steps.paths.outputs.required }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Filter documentation-only changes
+        id: paths
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          # Always produce the aggregate check; workflow-level paths can block PRs.
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          import { appendFileSync } from 'node:fs';
+          const { EVENT, BEFORE, BASE, HEAD, GITHUB_OUTPUT } = process.env;
+          let required = true;
+          if (EVENT === 'pull_request' || (EVENT === 'push' && BEFORE && !/^0+$/.test(BEFORE))) {
+            try {
+              const range = EVENT === 'pull_request' ? `${BASE}...${HEAD}` : `${BEFORE}..${HEAD}`;
+              const files = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', range], { encoding: 'utf8' }).split('\0').filter(Boolean);
+              const documentation = /^(?:README(?:\.[\w-]+)?\.md|AGENTS\.md|docs\/.*\.md|specs\/.*\.md)$/;
+              required = files.length === 0 || files.some(file => !documentation.test(file));
+            } catch {
+              // Unknown history must run validation, never silently skip it.
+            }
+          }
+          appendFileSync(GITHUB_OUTPUT, `required=${required}\n`);
+          JS
+
+  quality:
+    needs: changes
+    if: needs.changes.outputs.required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Lint, formatting, types and build
+        run: pnpm check
+
+  e2e:
+    needs: changes
+    if: needs.changes.outputs.required == 'true'
+    runs-on: macos-15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        suite: [distribution, mcp, models, remaining]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Verify precompiled media prerequisites
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          test "$(uname -m)" = arm64
+          command -v ffmpeg >/dev/null || brew install --force-bottle ffmpeg
+          command -v ffprobe >/dev/null
+          test -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" || brew install --cask google-chrome
+      - name: Select next patch version
+        id: version
+        if: github.workflow == 'Validate and release' && github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const releases = await github.paginate(github.rest.repos.listReleases, {...context.repo, per_page: 100});
+            const marker = `Source commit: ${context.sha}`;
+            const existing = releases.find(r => r.body?.split('\n').includes(marker));
+            if (existing) {
+              if (existing.draft) throw new Error(`Incomplete draft ${existing.tag_name}: inspect and recover its assets before retrying. No assets will be overwritten.`);
+              core.setOutput('skip', 'true');
+              return;
+            }
+            const tags = await github.paginate(github.rest.repos.listTags, {...context.repo, per_page: 100});
+            const names = [...tags.map(t => t.name), ...releases.map(r => r.tag_name)];
+            const versions = names.filter(n => /^v\d+\.\d+\.\d+$/.test(n)).map(n => n.slice(1).split('.').map(Number));
+            versions.push([0, 0, 0]);
+            versions.sort((a,b) => b[0]-a[0] || b[1]-a[1] || b[2]-a[2]);
+            const [major, minor, patch] = versions[0];
+            if (![major, minor, patch + 1].every(Number.isSafeInteger)) throw new Error('Invalid release version');
+            core.setOutput('version', `${major}.${minor}.${patch + 1}`);
+      - name: Build once and stamp release when required
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          pnpm build
+          if [ -n "$RELEASE_VERSION" ]; then
+            node packages/cli/dist/release-version.js "$RELEASE_VERSION"
+            pnpm build
+          fi
+      - name: Prepare offline deployment cache
+        if: matrix.suite == 'distribution'
+        run: |
+          pnpm --filter @file-forge/cli deploy --legacy --prod "$RUNNER_TEMP/file-forge-deploy-cache"
+          rm -rf "$RUNNER_TEMP/file-forge-deploy-cache"
+      - name: Run real E2E tests
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          case "$SUITE" in
+            distribution) pnpm exec vitest run e2e/distribution.test.js ;;
+            mcp) pnpm exec vitest run e2e/mcp.test.js ;;
+            models) pnpm exec vitest run e2e/posters.test.js e2e/lossless.test.js ;;
+            remaining) pnpm exec vitest run --exclude e2e/distribution.test.js --exclude e2e/mcp.test.js --exclude e2e/posters.test.js --exclude e2e/lossless.test.js ;;
+            *) exit 1 ;;
+          esac
+      - name: Package verified runtime
+        if: matrix.suite == 'distribution'
+        run: node packages/cli/dist/archive.js
+      - name: Save verified artifacts
+        if: matrix.suite == 'distribution'
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-${{ github.sha }}
+          path: |
+            release/*.tar.gz
+            release/*.zip
+            release/*.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  validate:
+    needs: [changes, quality, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every applicable check
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          REQUIRED: ${{ needs.changes.outputs.required }}
+          QUALITY: ${{ needs.quality.result }}
+          E2E: ${{ needs.e2e.result }}
+        run: |
+          test "$CHANGES" = success
+          if [ "$REQUIRED" = true ]; then
+            test "$QUALITY" = success
+            test "$E2E" = success
+          else
+            test "$REQUIRED" = false
+            test "$QUALITY" = skipped
+            test "$E2E" = skipped
+          fi

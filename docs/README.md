@@ -3,6 +3,7 @@
 Use current code/help and these guides to determine what is implemented. Older specs contain proposed work and historical milestone reports.
 
 - [Custom Sharp/FFmpeg processing](custom-processing.md): automatic route selection beyond built-in presets, dependency checks, quality and delivery.
+- [CI performance](ci-performance.md): scheduling, complete E2E sharding, cache policy and required checks.
 - [Current capabilities](current-capabilities.md): CLI/MCP operation matrix, dimensional rules, source-renaming exception, manifest versions and remaining work.
 - [Installation and Codex setup](installation.md): prerequisites, runtime/plugin installation, verification, upgrade and rollback.
 - [Six-angle 3D posters](model-posters.md): quality-80 lossy WebP views, camera axes, canvas sizes, optional browser dependency and schema-v5 manifests.

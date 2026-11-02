@@ -114,3 +114,5 @@ Image, video and folder compression support `--preset clarity`: image/cover qual
 Select a single file with its media command, or use `folder compress PATH --media videos --width 512` to resize only videos recursively. `--media images` selects images; omission processes all supported media. Other files retain their bytes/format in the normalized output copy. Codex remembers settings only within the current chat; new chats start with normal defaults.
 
 Video/folder compression supports `--audio remove` to omit video audio, or `--audio keep` (default) to encode the first audio track as AAC 128 kb/s. Only selected videos are affected; silent input is supported. Originals and standalone audio files are preserved by their existing workflows.
+
+CI keeps all real E2E coverage while running four macOS shards alongside Ubuntu quality checks. See [CI scheduling and required checks](docs/ci-performance.md).
