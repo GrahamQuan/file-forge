@@ -53,7 +53,7 @@ pnpm --silent file-forge favicon generate ./logo.png --size 64 --output ./icons 
 pnpm --silent file-forge manifest export ./assets --recursive --output ./delivery --json
 ```
 
-Compression keeps the original dimensions when no width or height is supplied. Supply `--width` or `--height` alone for an automatic other axis, or both for a bounding box. Aspect ratio is preserved without enlargement. Use `folder compress <directory>` to recursively compress media into a new normalized hierarchy, copy non-media files unchanged, and skip `.DS_Store`, symlinks, and animated images. Naming collisions fail before output creation. Smaller file sizes are not guaranteed. For more control, `image process` supports WebP, JPEG, PNG, and AVIF; use `--help` for options.
+Without `--ratio`, compression keeps the original dimensions when no width or height is supplied. Supply `--width` or `--height` alone for an automatic other axis, or both for a bounding box. Aspect ratio is preserved without enlargement. Use `folder compress <directory>` to recursively compress media into a new normalized hierarchy, copy non-media files unchanged, and skip `.DS_Store`, symlinks, and animated images. Naming collisions fail before output creation. Smaller file sizes are not guaranteed. For more control, `image process` supports WebP, JPEG, PNG, and AVIF; use `--help` for options.
 
 Media outputs and rename receipts go into a new `file-forge-<id>` directory with `manifest.json` and `report.md`. Media source files are preserved; applying an explicit folder-rename plan changes directory names only. Keep output directories outside input directories. `--json` emits the final result to stdout; diagnostics go to stderr.
 
@@ -116,6 +116,8 @@ Select a single file with its media command, or use `folder compress PATH --medi
 Video/folder compression supports `--audio remove` to omit video audio, or `--audio keep` (default) to encode the first audio track as AAC 128 kb/s. Only selected videos are affected; silent input is supported. Originals and standalone audio files are preserved by their existing workflows.
 
 Project uploads use a separate Effect package and an explicit user-maintained private project map. Review plans before authorizing writes; no automatic retries, remote rollback or website-link updates. Upload-only use and installation do not require FFmpeg/Chrome. See [project uploads](docs/project-uploads.md).
+
+Image/video operations support `--ratio W:H` / MCP `options.ratio` for centered cropping before resizing, also for selected folder media. For example, `image compress photo.png --ratio 1:1` or `video compress clip.mp4 --ratio 9:16 --height 720`. No padding or enlargement; explicit width and height must match the ratio. Pixel rounding (even pixels for video) can slightly alter the result. Covers match the cropped video; sources are preserved. See [aspect ratio rules](docs/aspect-ratios.md). Verify installed help/schemas; this describes source capabilities.
 
 CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
 

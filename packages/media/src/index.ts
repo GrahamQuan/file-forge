@@ -15,11 +15,38 @@ export class MediaError extends Data.TaggedError("MediaError")<{
 }> {}
 
 const dimension = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0));
+const aspectRatio = Schema.String.check(Schema.isPattern(/^\d+(?:\.\d+)?:\d+(?:\.\d+)?$/));
+const ratioValue = (ratio: string) => {
+  const [width, height] = ratio.split(":").map(Number) as [number, number];
+  return { width, height, aspect: width / height };
+};
+/** Shared semantic validation, also run before CLI/MCP submission creates any output. */
+export const validateAspectRatioOptions = (options: {
+  readonly ratio?: string;
+  readonly width?: number;
+  readonly height?: number;
+}) =>
+  Effect.gen(function* () {
+    if (options.ratio === undefined) return;
+    const { width, height, aspect } = ratioValue(options.ratio);
+    if (![width, height, aspect].every((value) => Number.isFinite(value) && value > 0))
+      return yield* new MediaError({ code: "INVALID_INPUT", detail: "Ratio must be positive W:H" });
+    if (
+      options.width !== undefined &&
+      options.height !== undefined &&
+      Math.abs(options.width / options.height / aspect - 1) > 1e-12
+    )
+      return yield* new MediaError({
+        code: "INVALID_INPUT",
+        detail: "Explicit width and height must match the requested ratio",
+      });
+  });
 export const CompressionPresetSchema = Schema.Literals(["standard", "clarity"]);
 export const ImageOptionsSchema = Schema.Struct({
   preset: Schema.optional(CompressionPresetSchema),
   width: Schema.optional(dimension),
   height: Schema.optional(dimension),
+  ratio: Schema.optional(aspectRatio),
   quality: Schema.optional(
     Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 100 })),
   ),
@@ -37,6 +64,7 @@ export const validateImageOptions = (value: unknown) =>
     Effect.mapError(
       () => new MediaError({ code: "INVALID_INPUT", detail: "Invalid image options" }),
     ),
+    Effect.tap(validateAspectRatioOptions),
   );
 
 // Internal workflow policy; CLI/MCP image options retain their existing defaults.
@@ -71,8 +99,23 @@ const sharpEffect = <A>(run: () => Promise<A>) =>
 export const ImageEngineLive = Layer.succeed(ImageEngine, {
   inspect: (input) => sharpEffect(() => sharp(input).metadata()),
   process: (input, output, options, encoding = "standard") =>
-    sharpEffect(() => {
+    sharpEffect(async () => {
       let image = sharp(input).rotate();
+      if (options.ratio !== undefined) {
+        // Crop in displayed coordinates after EXIF orientation, before any resizing.
+        const { autoOrient } = await image.metadata();
+        const aspect = ratioValue(options.ratio).aspect;
+        // Preserve integer boundaries despite floating-point noise (e.g. 100 * 0.58).
+        const width = Math.floor(Math.min(autoOrient.width, autoOrient.height * aspect) + 1e-9);
+        const height = Math.floor(Math.min(autoOrient.height, autoOrient.width / aspect) + 1e-9);
+        if (width < 1 || height < 1) throw new Error("Ratio produces an empty image crop");
+        image = image.extract({
+          left: Math.floor((autoOrient.width - width) / 2),
+          top: Math.floor((autoOrient.height - height) / 2),
+          width,
+          height,
+        });
+      }
       if (options.width !== undefined || options.height !== undefined) {
         image = image.resize({
           width: options.width,
@@ -239,15 +282,16 @@ export const CompressionOptionsSchema = Schema.Struct({
   preset: Schema.optional(CompressionPresetSchema),
   width: Schema.optional(dimension),
   height: Schema.optional(dimension),
+  ratio: Schema.optional(aspectRatio),
   quality: ImageOptionsSchema.fields.quality,
 });
 export type CompressionOptions = typeof CompressionOptionsSchema.Type;
 export const validateCompressionOptions = (input: unknown) =>
   Schema.decodeUnknownEffect(CompressionOptionsSchema)(input).pipe(
     Effect.mapError(
-      () =>
-        new MediaError({ code: "INVALID_INPUT", detail: "Dimensions must be positive integers" }),
+      () => new MediaError({ code: "INVALID_INPUT", detail: "Invalid compression options" }),
     ),
+    Effect.tap(validateAspectRatioOptions),
   );
 
 /** Resize and encode, then pass the first decoded output frame through the Sharp pipeline. */
@@ -274,6 +318,18 @@ export const compressVideo = (input: string, directory: string, options: Compres
       // Keep aspect ratio, never enlarge, and round down to even H.264 dimensions.
       const ratio = `min(1,min(${validated.width === undefined ? "1" : `${validated.width}/(iw*sar)`},${validated.height === undefined ? "1" : `${validated.height}/ih`}))`;
       const scale = `scale=w='trunc(iw*sar*${ratio}/2)*2':h='trunc(ih*${ratio}/2)*2',setsar=1`;
+      let filter =
+        validated.width !== undefined || validated.height !== undefined ? scale : undefined;
+      if (validated.ratio !== undefined) {
+        const aspect = ratioValue(validated.ratio).aspect;
+        const crop = `crop=w='floor(min(iw,ih*${aspect}/sar)+1e-9)':h='floor(min(ih,iw*sar/${aspect})+1e-9)':x='floor((iw-ow)/2)':y='floor((ih-oh)/2)':exact=1`;
+        // Normalize non-square pixels by reducing an axis, never by enlarging it.
+        const width = "iw*min(sar,1)";
+        const height = "ih*min(1/sar,1)";
+        const factor = `min(1,min(${validated.width === undefined ? "1" : `${validated.width}/(${width})`},${validated.height === undefined ? "1" : `${validated.height}/(${height})`}))`;
+        // Never pass zero (FFmpeg's "use input size" sentinel). A sub-2 result fails H.264.
+        filter = `${crop},scale=w='max(1,trunc(${width}*${factor}/2+1e-9)*2)':h='max(1,trunc(${height}*${factor}/2+1e-9)*2)',setsar=1`;
+      }
       yield* runFfmpeg([
         "-n",
         "-i",
@@ -281,7 +337,7 @@ export const compressVideo = (input: string, directory: string, options: Compres
         "-map",
         "0:v:0",
         ...(validated.audio === "remove" ? [] : ["-map", "0:a:0?"]),
-        ...(validated.width !== undefined || validated.height !== undefined ? ["-vf", scale] : []),
+        ...(filter === undefined ? [] : ["-vf", filter]),
         "-c:v",
         "libx264",
         "-crf",

@@ -4,6 +4,7 @@ import {
   ImageOptionsSchema,
   FaviconSizeSchema,
   PosterOptionsSchema,
+  validateAspectRatioOptions,
 } from "@file-forge/media";
 import {
   compressImages,
@@ -109,6 +110,20 @@ export const validateRequest = (input: unknown) =>
     Effect.mapError(
       () => new OperationError({ code: "INVALID_INPUT", detail: "Invalid operation request" }),
     ),
+    Effect.tap((request) => {
+      if (
+        request.operation === "image" ||
+        request.operation === "image-compress" ||
+        request.operation === "video-compress" ||
+        request.operation === "folder-compress"
+      )
+        return validateAspectRatioOptions(request.options).pipe(
+          Effect.mapError(
+            (error) => new OperationError({ code: "INVALID_INPUT", detail: error.detail }),
+          ),
+        );
+      return Effect.void;
+    }),
     Effect.tap((request) => {
       if (request.operation === "image-compress" && request.options.audio !== undefined)
         return Effect.fail(

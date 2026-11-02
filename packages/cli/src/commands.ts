@@ -40,6 +40,7 @@ export const commands = (
       output,
       width: Flag.Int("width").pipe(Flag.optional),
       height: Flag.Int("height").pipe(Flag.optional),
+      ratio: Flag.String("ratio").pipe(Flag.optional),
       quality: Flag.Int("quality").pipe(Flag.optional),
       format: Flag.String("format").pipe(Flag.optional),
       preset: Flag.String("preset").pipe(Flag.optional),
@@ -50,9 +51,9 @@ export const commands = (
         yield* progress;
         // Shared core runtime schema validates the untrusted CLI format and numeric values.
         const options = Object.fromEntries(
-          ["width", "height", "quality", "format", "preset"].flatMap((key) => {
+          ["width", "height", "ratio", "quality", "format", "preset"].flatMap((key) => {
             const value: Option.Option<string | number> =
-              args[key as "width" | "height" | "quality" | "format" | "preset"];
+              args[key as "width" | "height" | "ratio" | "quality" | "format" | "preset"];
             return Option.isSome(value) ? [[key, value.value]] : [];
           }),
         );
@@ -75,6 +76,7 @@ export const commands = (
         recursive,
         width: Flag.Int("width").pipe(Flag.optional),
         height: Flag.Int("height").pipe(Flag.optional),
+        ratio: Flag.String("ratio").pipe(Flag.optional),
         quality: Flag.Int("quality").pipe(Flag.optional),
         preset: Flag.String("preset").pipe(Flag.optional),
         media: Flag.String("media").pipe(Flag.optional),
@@ -106,6 +108,7 @@ export const commands = (
             options: {
               ...(Option.isSome(args.width) ? { width: args.width.value } : {}),
               ...(Option.isSome(args.height) ? { height: args.height.value } : {}),
+              ...(Option.isSome(args.ratio) ? { ratio: args.ratio.value } : {}),
               ...(Option.isSome(args.quality) ? { quality: args.quality.value } : {}),
               ...(Option.isSome(args.preset) ? { preset: args.preset.value } : {}),
               ...(Option.isSome(args.audio) ? { audio: args.audio.value } : {}),

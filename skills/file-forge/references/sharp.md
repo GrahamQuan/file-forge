@@ -15,3 +15,5 @@ Resolve Sharp from an existing project that declares it, or from the verified Fi
 - Reopen output with Sharp to verify format, dimensions, transparency and page count as applicable. For a no-change lossless conversion, compare decoded pixels under a consistent color/orientation interpretation; for edits, verify the requested transformation instead of claiming equality with the source.
 
 Official references: [operations](https://sharp.pixelplumbing.com/api-operation/), [resize/extract/extend](https://sharp.pixelplumbing.com/api-resize/), [composite](https://sharp.pixelplumbing.com/api-composite/), [output and metadata](https://sharp.pixelplumbing.com/api-output/), [input metadata](https://sharp.pixelplumbing.com/api-input/). Match examples to the installed version.
+
+For an ordinary centered image aspect crop, prefer the built-in [ratio workflow](aspect-ratios.md) when supported. Custom crop regions or additional transformations still use this direct route.

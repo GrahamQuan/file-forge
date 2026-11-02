@@ -53,7 +53,7 @@ pnpm --silent file-forge favicon generate ./logo.png --size 64 --output ./icons 
 pnpm --silent file-forge manifest export ./assets --recursive --output ./delivery --json
 ```
 
-未指定宽高时，压缩保留原始尺寸，跳过缩放。仅指定 `--width` 或 `--height` 时，另一边自动按比例计算；两者同时指定时作为边界框，保持比例且不放大。使用 `folder compress <directory>` 递归压缩媒体并输出新的规范命名层级，其他文件原样复制，跳过 `.DS_Store`、符号链接和动图。命名冲突会在创建输出前报错。不保证文件体积变小。需要更多控制时，使用 `image process`，支持 WebP、JPEG、PNG 和 AVIF；通过 `--help` 查看选项。
+未指定 `--ratio` 和宽高时，压缩保留原始尺寸，跳过缩放。仅指定 `--width` 或 `--height` 时，另一边自动按比例计算；两者同时指定时作为边界框，保持比例且不放大。使用 `folder compress <directory>` 递归压缩媒体并输出新的规范命名层级，其他文件原样复制，跳过 `.DS_Store`、符号链接和动图。命名冲突会在创建输出前报错。不保证文件体积变小。需要更多控制时，使用 `image process`，支持 WebP、JPEG、PNG 和 AVIF；通过 `--help` 查看选项。
 
 媒体产物和重命名记录写入新的 `file-forge-<id>` 目录，并附带 `manifest.json` 和 `report.md`。媒体处理保留源文件；应用明确的目录重命名计划只改变目录名称。输出目录必须位于输入目录之外。`--json` 将最终结果输出到 stdout，诊断信息输出到 stderr。
 
@@ -109,13 +109,15 @@ Skill 同时支持 FileForge 内置流程和自定义 Sharp/FFmpeg 处理。Code
 
 GLB 压缩会通过标准图片流程自动生成六张默认 16:9 海报。模型/文件夹组合交付使用 v6 清单；海报失败时保留已处理模型并报告部分成功。独立海报命令仍支持自定义比例和尺寸。
 
-图片、视频及文件夹压缩支持可选的 `--preset clarity`：图片/封面质量 90（WebP effort 6 和智能色度采样），视频 CRF 18、slow 编码。默认仍为质量 80 / CRF 23 medium。明确指定的 quality 仅覆盖图片/封面质量。此预设仍有损，可能耗时更长、文件更大；未指定尺寸时不会缩放。
+图片、视频及文件夹压缩支持可选的 `--preset clarity`：图片/封面质量 90（WebP effort 6 和智能色度采样），视频 CRF 18、slow 编码。默认仍为质量 80 / CRF 23 medium。明确指定的 quality 仅覆盖图片/封面质量。此预设仍有损，可能耗时更长、文件更大；仅选择此预设不会引入缩放。
 
 单个文件使用对应媒体命令；`folder compress PATH --media videos --width 512` 递归地仅处理视频。`--media images` 仅处理图片，省略则处理所有支持的媒体。其他文件在规范命名的输出副本中保持原字节和格式。Codex 仅在当前聊天记住设置，新聊天恢复默认值。
 
 视频/文件夹压缩支持 `--audio remove` 移除视频音轨，或 `--audio keep`（默认）将首条音轨编码为 AAC 128 kb/s。仅影响选中的视频；支持无音轨输入。源文件和独立音频文件继续遵循现有保留策略。
 
 项目上传使用独立的 Effect 包和用户自行维护的私密项目配置。授权写入前需审核计划；不自动重试、回滚远程对象或更新网站链接。仅上传及安装无需 FFmpeg/Chrome。详见[项目上传（英文）](docs/project-uploads.md)。
+
+图片/视频支持 `--ratio W:H` / MCP `options.ratio`，先居中裁剪再缩放，也适用于文件夹中选中的媒体。例如 `image compress photo.png --ratio 1:1` 或 `video compress clip.mp4 --ratio 9:16 --height 720`。不填充、不放大；同时指定宽高时必须与比例一致。像素取整（视频取偶数）可能使结果略有偏差。封面跟随裁剪后的视频，源文件保持不变。 详见[比例规则（英文）](docs/aspect-ratios.md)。请确认已安装版本的帮助和工具 schema；这里描述的是源码能力。
 
 CLI 上传进度在 stderr 显示每个文件及按字节加权的总百分比（包括 `--json` 模式）。100% 表示数据已交给 HTTP 传输层，并不代表 R2 已确认。只有收到 R2 成功响应才报告上传成功；公开 URL 检查单独显示，失败时整体结果仍可能为部分完成。
 

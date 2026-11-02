@@ -17,9 +17,9 @@ Use `compress_video` with a unique `requestId` and:
 }
 ```
 
-Pass `options: {}` when no dimensions were requested. Compression uses H.264 MP4, CRF 23, AAC for optional input audio, and a first-frame WebP cover. `quality` affects the cover, not video CRF. There is no arbitrary FFmpeg argument passthrough.
+Pass `options: {}` when no options were requested. Compression uses H.264 MP4, CRF 23, AAC for optional input audio, and a first-frame WebP cover. `quality` affects the cover, not video CRF. There is no arbitrary FFmpeg argument passthrough.
 
-No width/height skips the scale filter. Explicit bounds preserve ratio without enlargement, round down to even output pixels, and must each be at least 2. Original dimensions incompatible with H.264/yuv420p can fail when no resize is requested; report that instead of silently adding resize/padding. Existing autorotation behavior still applies.
+Without ratio, no width/height skips the scale filter. Explicit bounds preserve ratio without enlargement, round down to even output pixels, and must each be at least 2. Original dimensions incompatible with H.264/yuv420p can fail when no resize is requested; report that instead of silently adding resize/padding. Existing autorotation behavior still applies.
 
 Return both video and cover. Validate actual encoded dimensions and byte sizes; covers are additional delivery files, not part of the main-video savings figure. With FFprobe available, use `-v error -show_entries stream=width,height,sample_aspect_ratio:format=size,duration -of json` on the selected output.
 
@@ -39,3 +39,5 @@ Video audio is kept by default: the first audio stream, when present, is encoded
 file-forge video compress clip.mp4 --audio remove --json
 file-forge folder compress ./assets --media videos --width 512 --audio remove --json
 ```
+
+For an explicit target aspect, use `--ratio W:H` / MCP `options.ratio` and follow [center cropping](aspect-ratios.md). Crop before bounded resizing; two explicit dimensions must match the ratio. Omitted dimensions need no question. Never infer cropping from dimensions alone.

@@ -10,9 +10,9 @@ file-forge image compress "/absolute/input.png" --width 300 --json
 file-forge image process "/absolute/input.png" --format png --quality 90 --json
 ```
 
-Compression produces WebP at quality 80 by default; supported explicit quality is integer 1–100. No dimensions means no resizing. Width-only or height-only sets that maximum while preserving aspect ratio. Two axes mean fit inside, not exact square/crop/stretch. Small images are not enlarged. Orientation metadata is applied by the image pipeline.
+Compression produces WebP at quality 80 by default; supported explicit quality is integer 1–100. Without ratio, no dimensions means no resizing. Width-only or height-only sets that maximum while preserving aspect ratio. Without ratio, two axes mean fit inside, not exact square/crop/stretch. Small images are not enlarged. Orientation metadata is applied by the image pipeline.
 
-For explicit output formats use `image process`, supporting WebP, JPEG, PNG and AVIF; it needs at least one explicit option such as format, quality or a dimension. Image compression accepts multiple files and opt-in `--recursive`; it produces flat, uniquely named outputs. For preserving directory hierarchy, use [folders](folders.md).
+For explicit output formats use `image process`, supporting WebP, JPEG, PNG and AVIF; it needs at least one explicit option such as ratio, format, quality or a dimension. Image compression accepts multiple files and opt-in `--recursive`; it produces flat, uniquely named outputs. For preserving directory hierarchy, use [folders](folders.md).
 
 MCP request bodies, plus a unique `requestId`:
 
@@ -25,3 +25,5 @@ Read live schemas before submitting. Animated images and unsupported formats are
 For requested operations beyond these presets, select [custom processing](custom-processing.md) and read [direct Sharp](sharp.md). Do not force the request into a mismatched built-in operation.
 
 Use the opt-in `--preset clarity` / MCP `options.preset: "clarity"` when the user prioritizes detail while still compressing. It uses image/cover quality 90 (WebP effort 6, smartSubsample enabled) and video CRF 18 / slow. Omission keeps quality 80 and CRF 23 / medium. Explicit quality overrides images/covers only. No automatic resizing or sharpening. This is lossy and may be slower/larger; never promise a quality threshold or the smallest possible output. Audio/model optimization and automatic GLB posters keep their existing policies. Check installed support before using the flag.
+
+For an explicit target aspect, use `--ratio W:H` / MCP `options.ratio` and follow [center cropping](aspect-ratios.md). Crop before bounded resizing; two explicit dimensions must match the ratio. Omitted dimensions need no question. Never infer cropping from dimensions alone.

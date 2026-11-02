@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Also supports explicitly approved project-based R2 uploads. Does not generate new artwork.
+description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize/center-crop/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Also supports explicitly approved project-based R2 uploads. Does not generate new artwork.
 ---
 
 # FileForge
@@ -22,9 +22,9 @@ After readiness passes, follow [the upload workflow](references/uploads.md): mak
 
 ## Image/video compression workflow
 
-Width and height are optional maximum bounds. With neither supplied, skip resizing and keep the original dimensions.
-With one axis supplied, leave the other omitted so the original ratio determines it.
-With both supplied, fit inside the box. Never enlarge; explicitly resized video dimensions round down to even pixels.
+Width and height are optional maximum bounds. With neither supplied and no ratio, skip resizing and keep the original dimensions.
+Without ratio, one supplied axis leaves the other automatic using the source aspect.
+Without ratio, both supplied axes fit inside the box. Never enlarge; explicitly resized video dimensions round down to even pixels.
 For directories use `compress_folder` with `operation: "folder-compress"`, `input`, `output`,
 and `options` (an empty object preserves the original dimensions). Preserve hierarchy in a new folder,
 normalize names to lowercase ASCII letters, digits and hyphens, and keep extensions separate.
@@ -33,12 +33,12 @@ Naming collisions fail before output creation. Report skipped and failed assets.
 
 ### Images (Sharp)
 
-1. Reduce width and height to the agreed bounds.
+1. Apply any explicit centered ratio crop, then reduce width and height to the agreed bounds.
 2. Compress with quality 80 unless the user supplies another quality (1–100).
 3. Encode as WebP. Resize and compression happen in one Sharp encoding pass.
 
 Use `compress_images` with operation `image-compress`, `files`, `output`, and
-`options: { width, height, quality }`. Use this for compression requests, including when the
+`options: { width, height, ratio, quality }`. Use this for compression requests, including when the
 user calls the general image workflow. Keep `process_images` for explicit general conversion.
 
 ### Videos (FFmpeg)
@@ -53,7 +53,7 @@ user calls the general image workflow. Keep `process_images` for explicit genera
    copy when it is missing: ask for the text and timing. This is an agent-orchestrated step;
    FileForge does not render Hyperframes compositions itself.
 3. Submit `compress_video`, operation `video-compress`, with `input` (the source or motion
-   render), `output`, and `options: { width, height, quality }`. FFmpeg scales before encoding
+   render), `output`, and `options: { width, height, ratio, quality }`. FFmpeg scales before encoding
    H.264 MP4 (CRF 23) with optional AAC audio. Here `quality` controls the cover's image quality.
 4. The operation extracts the first frame of the final video and runs the Sharp image workflow
    to produce a compressed WebP cover with the same actual width and height as the video.
@@ -69,7 +69,7 @@ and close temporary browser resources when finished; preserve user-owned resourc
   Other operations use `inspect_files`, `process_images`, `generate_favicons`, or `export_manifest`.
   Supply a unique `requestId` and the tool's `operation` literal (`inspect`, `image`, `favicon`, or `export`).
 - Inspection takes `files` and optional `recursive`. Image processing adds `options` with explicit width,
-  height, quality (1–100), and/or format (`webp`, `jpeg`, `png`, `avif`), plus `output`.
+  height, ratio, quality (1–100), and/or format (`webp`, `jpeg`, `png`, `avif`), plus `output`.
 - Favicons take `input` (static PNG), `output`, and optional `size` (16–256, default 64).
   SVG contains traced vector shapes; warn that tracing can change colors, edges, and partial transparency.
 - Export takes `files` OR `manifest`, `output`, and optional `recursive`/`includePaths`.
@@ -134,7 +134,7 @@ Choose one file with its existing image/video/audio/model command. Use `folder c
 
 Example: `file-forge folder compress "/path/xxx" --media videos --width 512 --json`. Selected videos preserve aspect ratio without enlargement; height is automatic (even dimensions for H.264). Non-selected regular files are copied byte-for-byte with their existing format into the normalized output hierarchy. Selected videos still get covers; excluded GLBs do not render posters or require Chrome. Normal metadata/symlink skips and naming collision checks remain in force. Selection is recorded in `parameters.image.media`.
 
-Remember explicit user preferences for selection, dimensions, quality, preset and video audio mode only within the current chat. A later explicit value overrides earlier choices. Carry those preferences into CLI/MCP arguments; never write persistent config or change global defaults. A new chat starts with normal defaults: all folder media, original image/video dimensions, standard compression. Keep the input file/folder tied to the current request; do not reuse an old path as a default. Scope an inherited preference to compatible operations and do not turn a specific-file request into a folder operation.
+Remember explicit user preferences for selection, dimensions, ratio, quality, preset and video audio mode only within the current chat. A later explicit value overrides earlier choices. Carry those preferences into CLI/MCP arguments; never write persistent config or change global defaults. A new chat starts with normal defaults: all folder media, original image/video dimensions, standard compression. Keep the input file/folder tied to the current request; do not reuse an old path as a default. Scope an inherited preference to compatible operations and do not turn a specific-file request into a folder operation.
 
 Video audio is kept by default: the first audio stream, when present, is encoded as AAC at 128 kb/s (not byte-for-byte passthrough or preservation of every track). Use `--audio remove` / MCP `options.audio: "remove"` to omit all audio streams; `--audio keep` explicitly restores the default. Supported by video and folder compression; image-only commands reject it. Folder selection applies first: only selected videos lose audio, excluded files and standalone audio/music files retain their existing behavior. Silent input is valid in either mode. Covers, video dimensions and compression presets are unchanged. Manifests record `parameters.video.audio`. Remember an explicit choice only within this chat, and pass it on compatible later requests; new chats default to keep.
 

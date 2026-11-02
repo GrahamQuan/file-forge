@@ -2,12 +2,12 @@
 
 Use this route when the requested result is outside a built-in workflow or the user explicitly requests direct Sharp/FFmpeg processing. Choose from the user's actual goal, installed capabilities and preservation requirements. Announce the route and proceed when the request is clear and dependencies are ready; choosing this route initially does not require a separate approval or a failed built-in attempt.
 
-| Need                                                                                             | Route                                                                       |
-| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| A FileForge preset exactly meets the request                                                     | Existing CLI/MCP workflow                                                   |
-| Image crop, composite, rotation, color/alpha operations or other supported image transformations | [Direct Sharp](sharp.md)                                                    |
-| Video/audio trim, remux, extraction, filters, mixing or other supported media transformations    | [Direct FFmpeg](ffmpeg.md)                                                  |
-| Several transformations                                                                          | Combine tools, verifying intermediates and avoiding unnecessary re-encoding |
+| Need                                                                                                     | Route                                                                       |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| A FileForge preset exactly meets the request                                                             | Existing CLI/MCP workflow                                                   |
+| Custom crop region, composite, rotation, color/alpha operations or other supported image transformations | [Direct Sharp](sharp.md)                                                    |
+| Video/audio trim, remux, extraction, filters, mixing or other supported media transformations            | [Direct FFmpeg](ffmpeg.md)                                                  |
+| Several transformations                                                                                  | Combine tools, verifying intermediates and avoiding unnecessary re-encoding |
 
 These are examples, not an allowlist. Use other operations exposed by the installed Sharp/FFmpeg version when they serve the request. Neither tool handles arbitrary tasks or replaces a 3D renderer. Check local help and official documentation rather than inventing APIs or codecs.
 
@@ -27,3 +27,5 @@ These are examples, not an allowlist. Use other operations exposed by the instal
 4. Validate the requested outcome with Sharp metadata/decoded pixels or FFprobe/FFmpeg as appropriate: dimensions, alpha, format, stream inventory, duration/timestamps, sample properties and decoding. Verify exact decoded content when claiming lossless preservation; encoder quality settings alone are not proof. Calculate savings only for comparable source/output content, not extracts, edits or new derivatives.
 5. Return actual paths and identify the route as direct Sharp/FFmpeg. Keep a concise receipt with tool versions, input/output mapping, operation/options and validation results; retain a useful reproducible script when appropriate. This receipt is not a FileForge schema-v1–v6 processing manifest. Optional `manifest export` only inspects supported prepared assets; it does not certify custom processing or fully inspect audio/video.
 6. Direct processes are not FileForge jobs: track their PID/session and cancellation yourself. Stop task-owned children, verify exit, and clean temporary staging; preserve originals, deliverables and unrelated services. If execution/validation fails, retain results, diagnose, propose a solution and ask before retrying or changing the route.
+
+Centered image/video aspect crops use the built-in `--ratio W:H` / `options.ratio` workflow when available; see [aspect ratios](aspect-ratios.md). Use the direct route for arbitrary regions, subject tracking or other requirements outside that contract.

@@ -86,14 +86,14 @@ export const messages: Record<Locale, MessageCatalog> = {
 Usage:
   file-forge favicon generate <input.png> [--size 64] [--output DIR] [--json]
   file-forge inspect <files...> [--recursive] [--json]
-  file-forge image process <files...> [--width N] [--height N] [--quality N] [--format webp|jpeg|png|avif] [--output DIR] [--recursive] [--json]
-  file-forge image compress <files...> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge image process <files...> [--ratio W:H] [--width N] [--height N] [--quality N] [--format webp|jpeg|png|avif] [--output DIR] [--recursive] [--json]
+  file-forge image compress <files...> [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge folder rename <input> --renames PLAN.json [--apply] [--output DIR] [--json]
-  file-forge folder compress <input> [--audio keep|remove] [--media all|images|videos] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge folder compress <input> [--audio keep|remove] [--media all|images|videos] [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge audio compress <input> [--output DIR] [--json]
   file-forge model compress <input.glb> [--output DIR] [--json]
   file-forge model posters <input.glb> [--ratio W:H] [--width N] [--height N] [--output DIR] [--json]
-  file-forge video compress <input> [--audio keep|remove] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge video compress <input> [--audio keep|remove] [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
@@ -103,7 +103,8 @@ Usage:
 Global options: --language en|zh-CN, --help
 Favicons: static PNG to ICO, PNG, and traced vector SVG; size 16–256 (default 64), transparent padding, no enlargement. Tracing can alter colors, edges, and partial transparency.
 Images preserve aspect ratio without enlargement. Supply at least one image process option.
-Compression preserves original dimensions when no size is supplied; supply width or height alone for an automatic other axis. Folder compression preserves nested structure with normalized names. Images become WebP; videos become MP4 with a first-frame WebP cover. Explicitly resized video dimensions round down to even pixels; quality controls the cover.
+Image/video --ratio W:H opts into center cropping before resizing (also selected folder media). Use positive decimal components, for example 1:1 or 16:9. Explicit width and height must match ratio. No padding or enlargement; pixel rounding can slightly alter ratio, and video dimensions round down to even pixels. Covers follow the cropped video.
+Without --ratio, compression preserves original dimensions when no size is supplied; supply width or height alone for an automatic other axis. Folder compression preserves nested structure with normalized names. Images become WebP; videos become MP4 with a first-frame WebP cover. Explicitly resized video dimensions round down to even pixels; quality controls the cover.
 Output: a new task directory under Downloads or --output. Sources and existing outputs are preserved by media workflows. Folder rename previews by default; --apply renames original directories from an explicit JSON plan.
 Folder --media selects all (default), images or videos; non-selected files are copied unchanged. Folder compression always recurses; other directory operations require --recursive. Symlinks, animated images, SVG, and unsupported files are reported explicitly.
 Audio/music: strictly lossless; eligible PCM/FLAC becomes smaller verified FLAC, otherwise original bytes are retained. Requires FFprobe (FFPROBE_PATH supported). Models: self-contained GLB 2.0 JSON compaction only; binary data stays unchanged. Folder processing includes both.
@@ -187,14 +188,14 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. General composition commands, speci
 用法：
   file-forge favicon generate <input.png> [--size 64] [--output DIR] [--json]
   file-forge inspect <files...> [--recursive] [--json]
-  file-forge image process <files...> [--width N] [--height N] [--quality N] [--format webp|jpeg|png|avif] [--output DIR] [--recursive] [--json]
-  file-forge image compress <files...> [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge image process <files...> [--ratio W:H] [--width N] [--height N] [--quality N] [--format webp|jpeg|png|avif] [--output DIR] [--recursive] [--json]
+  file-forge image compress <files...> [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge folder rename <input> --renames PLAN.json [--apply] [--output DIR] [--json]
-  file-forge folder compress <input> [--audio keep|remove] [--media all|images|videos] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge folder compress <input> [--audio keep|remove] [--media all|images|videos] [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge audio compress <input> [--output DIR] [--json]
   file-forge model compress <input.glb> [--output DIR] [--json]
   file-forge model posters <input.glb> [--ratio W:H] [--width N] [--height N] [--output DIR] [--json]
-  file-forge video compress <input> [--audio keep|remove] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge video compress <input> [--audio keep|remove] [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
@@ -204,7 +205,8 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. General composition commands, speci
 全局选项：--language en|zh-CN、--help
 网站图标：静态 PNG 转 ICO、PNG 和描摹矢量 SVG；尺寸 16–256（默认 64），透明填充，不放大。描摹可能改变颜色、边缘和半透明效果。
 图片保持宽高比，默认不放大。image process 必须提供至少一个图片选项。
-未指定尺寸时压缩保留原始宽高并跳过缩放；仅指定宽或高时自动保持比例。文件夹压缩保留层级并规范名称。图片输出 WebP；视频输出 MP4 及同尺寸的首帧 WebP 封面。指定缩放的视频尺寸向下取偶数；quality 控制封面质量。
+图片/视频 --ratio W:H 在缩放前居中裁剪（也适用于文件夹中选中的媒体）。比例两边须为正十进制数，如 1:1 或 16:9。同时指定宽高时必须与比例一致。不填充、不放大；像素取整可能使比例略有偏差，视频尺寸向下取偶数。封面跟随裁剪后的视频。
+未指定 --ratio 和尺寸时压缩保留原始宽高并跳过缩放；仅指定宽或高时自动保持比例。文件夹压缩保留层级并规范名称。图片输出 WebP；视频输出 MP4 及同尺寸的首帧 WebP 封面。指定缩放的视频尺寸向下取偶数；quality 控制封面质量。
 产物保存在 Downloads 或 --output 下的新任务目录中。媒体处理保留源文件和现有产物。folder rename 默认预览；--apply 按明确的 JSON 计划重命名原目录。
 文件夹 --media 可选择 all（默认）、images 或 videos；未选中的文件保持原字节复制。文件夹压缩总是递归；其他目录操作需要 --recursive。符号链接、动画图片、SVG 和不支持的文件会明确报告。
 音频/音乐：严格无损；符合条件的 PCM/FLAC 仅在样本验证通过且更小时转为 FLAC，否则保留原字节。需要 FFprobe（支持 FFPROBE_PATH）。模型：仅压缩自包含 GLB 2.0 的 JSON 空白，二进制数据不变。文件夹处理包含这两类素材。

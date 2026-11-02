@@ -33,7 +33,7 @@ file-forge favicon generate /path/to/logo.png --size 64 --output /path/to/output
 请在宿主 PATH 中配置 Node，并通过 PATH 或 `FFMPEG_PATH` 提供 FFmpeg。本安装器不修改 Codex 配置。
 
 当前源码支持图片、视频和文件夹压缩、检查、格式转换、网站图标、原目录重命名预览/应用、
-版本化清单导出及会话级 MCP 任务。未指定宽高时保留原尺寸；请查看本压缩包的帮助确认实际能力。
+版本化清单导出及会话级 MCP 任务。未指定宽高或比例时保留原尺寸；请查看本压缩包的帮助确认实际能力。
 GitHub Actions 会发布经过验证的补丁版本，并提供单独的匹配插件 ZIP 和校验和。
 持久任务、自动升级及其他分发平台尚未实现。
 可复用的项目 skill 及复制脚本在源码仓库中维护；安装运行时不会复制该 skill 或注册 Codex 插件。
@@ -49,7 +49,7 @@ GitHub Actions 会发布经过验证的补丁版本，并提供单独的匹配�
 
 GLB 压缩会通过标准图片流程自动生成六张默认 16:9 海报。模型/文件夹组合交付使用 v6 清单；海报失败时保留已处理模型并报告部分成功。独立海报命令仍支持自定义比例和尺寸。
 
-图片、视频及文件夹压缩支持可选的 `--preset clarity`：图片/封面质量 90（WebP effort 6 和智能色度采样），视频 CRF 18、slow 编码。默认仍为质量 80 / CRF 23 medium。明确指定的 quality 仅覆盖图片/封面质量。此预设仍有损，可能耗时更长、文件更大；未指定尺寸时不会缩放。
+图片、视频及文件夹压缩支持可选的 `--preset clarity`：图片/封面质量 90（WebP effort 6 和智能色度采样），视频 CRF 18、slow 编码。默认仍为质量 80 / CRF 23 medium。明确指定的 quality 仅覆盖图片/封面质量。此预设仍有损，可能耗时更长、文件更大；仅选择此预设不会引入缩放。
 
 单个文件使用对应媒体命令；`folder compress PATH --media videos --width 512` 递归地仅处理视频。`--media images` 仅处理图片，省略则处理所有支持的媒体。其他文件在规范命名的输出副本中保持原字节和格式。Codex 仅在当前聊天记住设置，新聊天恢复默认值。
 
@@ -58,6 +58,8 @@ GLB 压缩会通过标准图片流程自动生成六张默认 16:9 海报。模�
 ## 项目上传
 
 仅安装和上传无需 FFmpeg/Chrome；媒体操作仍需要相应依赖。命令为 `upload config check`、`upload plan`、`upload apply` 和 `upload verify`，均需明确 `--project`。用户在运行包/回滚/skill 目录之外维护私密 `file-forge.upload.local.json`；可通过 `FILE_FORGE_UPLOAD_CONFIG` 指定路径。智能体只使用脱敏检查，不读取或修改真实配置。先审核计划，再授权条件写入；保留计划、执行标记及收据，不盲目重放。仅支持 R2，无自动重试、远程回滚或网站链接更新。包内 `@file-forge/upload/schema` 提供占位示例及 schema。真实 R2/CDN 验收需单独授权，目前本地协议验证不代表线上兼容性。
+
+图片/视频支持 `--ratio W:H` / MCP `options.ratio`，先居中裁剪再缩放，也适用于文件夹中选中的媒体。例如 `image compress photo.png --ratio 1:1` 或 `video compress clip.mp4 --ratio 9:16 --height 720`。不填充、不放大；同时指定宽高时必须与比例一致。像素取整（视频取偶数）可能使结果略有偏差。封面跟随裁剪后的视频，源文件保持不变。 使用前请确认本压缩包的帮助和已连接 MCP 的 schema。
 
 CLI 上传进度在 stderr 显示每个文件及按字节加权的总百分比（包括 `--json` 模式）。100% 表示数据已交给 HTTP 传输层，并不代表 R2 已确认。只有收到 R2 成功响应才报告上传成功；公开 URL 检查单独显示，失败时整体结果仍可能为部分完成。
 

@@ -5,7 +5,7 @@ This describes the current source checkout, not a guarantee about any installed 
 | Operation                 | CLI                                     | MCP                        | Behavior                                                                 |
 | ------------------------- | --------------------------------------- | -------------------------- | ------------------------------------------------------------------------ |
 | Image metadata            | `inspect`                               | `inspect_files`            | Read-only image inspection; recursive only when requested                |
-| Image compression         | `image compress`                        | `compress_images`          | WebP, default quality 80; optional dimensions                            |
+| Image compression         | `image compress`                        | `compress_images`          | WebP, default quality 80; optional dimensions and centered ratio crop    |
 | Image conversion          | `image process`                         | `process_images`           | WebP/JPEG/PNG/AVIF, at least one explicit processing option              |
 | Video compression         | `video compress`                        | `compress_video`           | H.264 MP4, optional AAC, matching first-frame WebP cover                 |
 | Folder compression        | `folder compress`                       | `compress_folder`          | Recursive new copy with normalized hierarchy; other regular files copied |
@@ -19,7 +19,7 @@ This describes the current source checkout, not a guarantee about any installed 
 
 ## Invariants
 
-No width and no height means compression skips resizing and preserves original dimensions, with existing orientation handling. One dimension leaves the other automatic; both define maximum bounds without cropping or enlargement. Explicitly resized H.264 dimensions round down to even pixels. Without resize, an original size incompatible with H.264/yuv420p fails rather than being silently changed. Image quality and cover quality do not change video CRF (23).
+Without an explicit ratio, no width and no height means compression skips resizing and preserves original dimensions, with existing orientation handling. One dimension leaves the other automatic; both define maximum bounds without cropping or enlargement. Explicitly resized H.264 dimensions round down to even pixels. Without resize, an original size incompatible with H.264/yuv420p fails rather than being silently changed. Image quality and cover quality do not change video CRF (23).
 
 Media operations preserve originals and create `file-forge-<id>` output directories; on macOS the default parent is Downloads. Source-directory rename is the explicit exception: only named directories change in place, file contents stay intact, and a separate receipt records progress. Keep outputs/receipts outside the relevant source tree. MCP paths must remain in its configured workspace; the configured root itself cannot be renamed.
 
@@ -50,6 +50,8 @@ Folder processing supports `--media all|images|videos`; non-selected files are c
 Video audio defaults to keep; opt in to `--audio remove` for videos or selected videos in folders. See [video audio controls](video-audio.md).
 
 Project-based R2 uploads: `upload folders`, `upload config check`, `upload plan`, `upload apply`, `upload verify`; MCP `list_bucket_folders`, `check_upload_config`, `plan_upload`, `upload_files`, `verify_upload`. Independent package, private user-owned config, explicit project/approval, conditional writes, durable sanitized receipts and read-only reconciliation. Upload and MCP startup require no FFmpeg/Chrome; media submission still checks FFmpeg. Local protocol evidence does not establish live R2/CDN compatibility. See [project uploads](project-uploads.md). Folder deliveries exclude default-named private upload configuration.
+
+Image/video processing also accepts `--ratio W:H` / MCP `options.ratio` for opt-in center cropping before bounded resizing, including selected folder media. Explicit width and height must match the ratio. Covers match the cropped video; defaults and manifest versions remain unchanged. See [aspect ratios](aspect-ratios.md).
 
 CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
 

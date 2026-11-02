@@ -20,3 +20,5 @@ Track the owned process/session and drain diagnostics; keep output outside the s
 Check exit status, reopen with FFprobe and verify streams, duration, dimensions, format and required metadata. Use an actual decode check when appropriate; compare decoded samples/frames for preservation claims where no edit was requested. Report cut/timestamp limitations or validation failures instead of silently retrying with lower quality.
 
 Official references: [FFmpeg CLI, stream selection and stream copy](https://ffmpeg.org/ffmpeg.html), [filters and filtergraph escaping](https://ffmpeg.org/ffmpeg-filters.html), [FFprobe](https://ffmpeg.org/ffprobe.html). Local help establishes which features are installed.
+
+For an ordinary centered video aspect crop, prefer the built-in [ratio workflow](aspect-ratios.md) when supported. Custom crop regions or additional transformations still use this direct route.

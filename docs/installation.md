@@ -149,3 +149,5 @@ Audio processing additionally requires FFprobe beside an absolute FFmpeg executa
 ## Project uploads
 
 See [project uploads](project-uploads.md) for configuration and exact CLI/MCP commands. The user maintains a private project-map JSON outside installed runtime, rollback, skills and delivery trees. Agents use sanitized checks and never read/edit the real file. Set `FILE_FORGE_UPLOAD_CONFIG` in the MCP host environment; individual tools cannot supply it. Installation and upload-only use require Node.js but not FFmpeg/Chrome; media operations retain their prerequisites. Existing published versions may predate this source feature.
+
+Image/video center cropping requires a matching runtime with `--ratio W:H` in CLI help and `options.ratio` in `process_images`, `compress_images`, `compress_video` and `compress_folder` schemas. Updating skill text alone does not upgrade runtime support. Rebuild/reconnect or install a compatible release through the existing setup workflow; the current source feature is not proof of release availability.

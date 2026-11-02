@@ -29,7 +29,7 @@ file-forge image compress "$HOME/Downloads/Adorable dog portrait.jpg" \
   --width 512 --height 512 --json
 ```
 
-Dimensions are optional maximum bounds; omit both to retain original size. Aspect ratio is preserved, and small images are not enlarged. A non-square source will not become a square unless its aspect ratio is already square; this command does not crop. Default WebP quality is 80. Use `--quality 1` through `--quality 100` when explicitly requested.
+Without `--ratio`, dimensions are optional maximum bounds; omit both to retain original size. Aspect ratio is preserved, and small images are not enlarged. A non-square source will not become a square unless its aspect ratio is already square; dimensions alone do not crop. Use `--ratio 1:1` to opt in to a centered square crop before resizing; see [aspect ratios](aspect-ratios.md). Default WebP quality is 80. Use `--quality 1` through `--quality 100` when explicitly requested.
 
 For batches and an explicit destination:
 
@@ -56,7 +56,7 @@ file-forge video compress "$HOME/Downloads/clip.mp4" \
   --output "$HOME/Downloads/file-forge/outputs" --json
 ```
 
-The result includes an H.264 MP4, optional AAC audio, and a first-frame WebP cover matching the encoded dimensions. Width and height are maximum bounds, aspect ratio is preserved, and explicitly resized output dimensions are rounded down to even pixels. Without requested dimensions, resizing is skipped; incompatible original H.264 dimensions fail rather than silently change. `--quality` controls the cover image, not video CRF; the current compression workflow uses CRF 23.
+The result includes an H.264 MP4, optional AAC audio, and a first-frame WebP cover matching the encoded dimensions. Width and height are maximum bounds, aspect ratio is preserved, and explicitly resized output dimensions are rounded down to even pixels. Without requested dimensions or ratio, resizing is skipped; incompatible original H.264 dimensions fail rather than silently change. `--quality` controls the cover image, not video CRF; the current compression workflow uses CRF 23.
 
 ### A requested width with automatic height
 
@@ -157,7 +157,7 @@ file-forge audio compress "/absolute/song.wav" --output "/absolute/delivery" --j
 file-forge model compress "/absolute/scene.glb" --output "/absolute/delivery" --json
 ```
 
-Quality is strictly preserved. Eligible integer PCM/FLAC becomes sample-verified FLAC only when smaller; other audio retains its original bytes. Audio needs FFprobe. GLB support compacts JSON whitespace only, retaining all binary data and required extensions. It may save little or nothing. Folder compression includes these types automatically; its width/height/quality options still apply only to images/videos. See [formats, verification and limitations](lossless-audio-models.md). Audio results use schema v4; model/folder results with automatic GLB posters use schema v6 and explicitly report `original-retained` where appropriate.
+Quality is strictly preserved. Eligible integer PCM/FLAC becomes sample-verified FLAC only when smaller; other audio retains its original bytes. Audio needs FFprobe. GLB support compacts JSON whitespace only, retaining all binary data and required extensions. It may save little or nothing. Folder compression includes these types automatically; its width/height/ratio/quality options still apply only to images/videos. See [formats, verification and limitations](lossless-audio-models.md). Audio results use schema v4; model/folder results with automatic GLB posters use schema v6 and explicitly report `original-retained` where appropriate.
 
 ## Six-angle 3D posters
 
@@ -182,5 +182,7 @@ Video audio defaults to keep; opt in to `--audio remove` for videos or selected 
 ## Project uploads
 
 See [project uploads](project-uploads.md) for configuration and exact CLI/MCP commands. The user maintains a private project-map JSON outside installed runtime, rollback, skills and delivery trees. Agents use sanitized checks and never read/edit the real file. Set `FILE_FORGE_UPLOAD_CONFIG` in the MCP host environment; individual tools cannot supply it. Installation and upload-only use require Node.js but not FFmpeg/Chrome; media operations retain their prerequisites. Existing published versions may predate this source feature.
+
+For centered aspect crops, use `image compress photo.png --ratio 1:1`, `image process photo.jpg --ratio 4:3 --format png`, or `video compress clip.mp4 --ratio 9:16 --height 720`. Folder compression accepts the same ratio for selected images/videos. MCP uses `options.ratio`. Both explicit dimensions must match the ratio. See [crop, rounding and manifest rules](aspect-ratios.md).
 
 Use `file-forge upload folders --project KEY` to inspect the current R2 folder tree under the project’s configured prefix. Use `--prefix assets` for a subfolder or `--json` for full folder prefixes.

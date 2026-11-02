@@ -185,12 +185,16 @@ export const compressFolder = (
       parameters: {
         recursive: true,
         video: {
+          ...(validated.ratio === undefined ? {} : { ratio: validated.ratio, crop: "center" }),
+          ...(validated.width === undefined ? {} : { width: validated.width }),
+          ...(validated.height === undefined ? {} : { height: validated.height }),
           ...videoEncoding(validated),
           audio: validated.audio ?? "keep",
           coverQuality: imageQuality(validated),
           preset: validated.preset ?? "standard",
         },
         image: {
+          ...(validated.ratio === undefined ? {} : { crop: "center" }),
           ...Object.fromEntries(
             Object.entries(validated).filter(
               ([key, value]) => key !== "audio" && value !== undefined,

@@ -405,6 +405,7 @@ export const processImages = (
       parameters: {
         recursive,
         image: {
+          ...(validated.ratio === undefined ? {} : { crop: "center" }),
           ...Object.fromEntries(
             Object.entries(validated).filter(([, value]) => value !== undefined),
           ),
@@ -600,6 +601,7 @@ export const compressVideoFile = (
       parameters: {
         recursive: false,
         video: {
+          ...(validated.ratio === undefined ? {} : { crop: "center" }),
           ...Object.fromEntries(
             Object.entries(validated).filter(([, value]) => value !== undefined),
           ),

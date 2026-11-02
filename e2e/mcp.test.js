@@ -678,3 +678,116 @@ test("MCP renders default and single-axis posters and cancels with browser clean
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("MCP ratio schemas and shared validation support centered image/video/folder deliveries", async () => {
+  const root = await mkdtemp(join(tmpdir(), "file-forge-mcp-ratio-"));
+  let client;
+  try {
+    const inputs = join(root, "inputs");
+    await mkdir(inputs);
+    const image = join(inputs, "image.png"),
+      video = join(inputs, "video.mp4");
+    await sharp({ create: { width: 120, height: 80, channels: 3, background: "red" } })
+      .png()
+      .toFile(image);
+    const fixture = spawnSync(
+      process.env.FFMPEG_PATH || "ffmpeg",
+      [
+        "-nostdin",
+        "-n",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=120x80:rate=10:duration=0.2",
+        "-c:v",
+        "libx264",
+        video,
+      ],
+      { encoding: "utf8", timeout: 10000 },
+    );
+    assert.equal(fixture.status, 0, fixture.stderr);
+    client = await connect(root);
+    await initialize(client);
+    const listed = (await client.request("tools/list")).result.tools;
+    for (const [name, operation, paths] of [
+      ["process_images", "image", { files: [image] }],
+      ["compress_images", "image-compress", { files: [image] }],
+      ["compress_video", "video-compress", { input: video }],
+      ["compress_folder", "folder-compress", { input: inputs, media: "all" }],
+    ]) {
+      const schema = listed.find((tool) => tool.name === name).inputSchema;
+      assert.ok(JSON.stringify(schema.properties.options).includes('"ratio"'));
+      const request = {
+        operation,
+        ...paths,
+        output: join(root, "outputs"),
+        options: { ratio: "1:1", height: 40 },
+      };
+      for (const [index, options] of [
+        { ratio: "0:1" },
+        { ratio: "1:0" },
+        { ratio: "1:1", width: 60, height: 40 },
+        { ratio: "1/1" },
+      ].entries()) {
+        const rejected = await call(client, name, {
+          ...request,
+          requestId: `${name}-invalid-${index}`,
+          output: join(root, "invalid"),
+          options,
+        });
+        assert.ok(
+          rejected.error || rejected.result?.isError || decode(rejected).code === "INVALID_INPUT",
+          JSON.stringify(rejected),
+        );
+      }
+      assert.ok(!(await readdir(root)).includes("invalid"));
+      const requestId = `${name}-ratio`;
+      assert.equal(decode(await call(client, name, { ...request, requestId })).status, "running");
+      const job = await terminal(client, requestId);
+      assert.equal(job.status, "succeeded", JSON.stringify(job));
+      for (const asset of job.result.assets) {
+        assert.deepEqual([asset.outputWidth, asset.outputHeight], [40, 40]);
+        if (asset.kind === "image") {
+          const meta = await sharp(asset.output).metadata();
+          assert.deepEqual([meta.width, meta.height], [40, 40]);
+        }
+      }
+      const settings = job.result.parameters[name === "compress_video" ? "video" : "image"];
+      assert.equal(settings.ratio, "1:1");
+      assert.equal(settings.crop, "center");
+      const cli = spawnSync(
+        process.execPath,
+        [
+          resolve("packages/cli/bin/file-forge.js"),
+          operation === "image" ? "image" : operation.split("-")[0],
+          operation === "image" ? "process" : "compress",
+          paths.input ?? image,
+          "--ratio",
+          "1:1",
+          "--height",
+          "40",
+          "--output",
+          root,
+          "--json",
+        ],
+        {
+          encoding: "utf8",
+          timeout: 30000,
+          env: { ...process.env, FILE_FORGE_CONFIG_DIR: join(root, "config") },
+        },
+      );
+      assert.equal(cli.status, 0, cli.stdout + cli.stderr);
+      const manifest = JSON.parse(cli.stdout);
+      assert.deepEqual(manifest.parameters, job.result.parameters);
+      for (let index = 0; index < manifest.assets.length; index++) {
+        assert.deepEqual(
+          await readFile(manifest.assets[index].output),
+          await readFile(job.result.assets[index].output),
+        );
+      }
+    }
+  } finally {
+    if (client) await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});

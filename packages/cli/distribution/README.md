@@ -39,7 +39,7 @@ on the host's PATH and FFmpeg on PATH or through `FFMPEG_PATH`. No Codex configu
 
 The current source supports image/video/folder compression, inspection, conversion, favicons, explicit
 source-directory rename preview/apply, versioned manifest export, and session-local MCP jobs. With no
-width/height, compression preserves original dimensions. Check this archive’s help for its capabilities.
+width/height or ratio, compression preserves original dimensions. Check this archive’s help for its capabilities.
 GitHub Actions publishes tested patch releases with a separate matching plugin ZIP and checksums.
 Durable jobs, automatic updates, and other distribution platforms remain unimplemented.
 The reusable project skill and its copy helper are maintained in the source checkout; runtime
@@ -65,6 +65,8 @@ Video/folder compression supports `--audio remove` to omit video audio, or `--au
 ## Project uploads
 
 Installation and upload-only use do not require FFmpeg/Chrome; media operations retain their prerequisites. Commands are `upload config check`, `upload plan`, `upload apply` and `upload verify`, each with explicit `--project`. The user maintains private `file-forge.upload.local.json` outside runtime/rollback/skill trees; `FILE_FORGE_UPLOAD_CONFIG` selects its path. Agents use sanitized checks and never read/edit the real config. Review a plan before authorizing conditional writes; retain plans, execution markers and receipts, never blindly replay. R2 only; no automatic retries, remote rollback or website-link updates. Packaged `@file-forge/upload/schema` contains placeholders and a schema. Live R2/CDN acceptance requires separate authorization; local protocol tests do not establish it.
+
+Image/video operations support `--ratio W:H` / MCP `options.ratio` for centered cropping before resizing, also for selected folder media. For example, `image compress photo.png --ratio 1:1` or `video compress clip.mp4 --ratio 9:16 --height 720`. No padding or enlargement; explicit width and height must match the ratio. Pixel rounding (even pixels for video) can slightly alter the result. Covers match the cropped video; sources are preserved. Check this archive’s help and the connected MCP schemas before use.
 
 CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
 

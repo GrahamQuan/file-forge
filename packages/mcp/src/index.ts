@@ -93,21 +93,21 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("process_images", {
     description:
-      "Submit image resize/compression/conversion. Preserves sources and writes a new delivery directory. Poll job_status.",
+      "Submit image resize/compression/conversion. Optional options.ratio W:H center-crops before resizing without enlargement; explicit width and height must match ratio. Preserves sources and writes a new delivery directory. Poll job_status.",
     parameters: submission(ImageRequest.fields),
     success,
     failure,
   }).annotate(Tool.Strict, true),
   Tool.make("compress_images", {
     description:
-      "Resize and compress images to WebP. Optional preset clarity prioritizes detail (quality 90); standard remains quality 80. Omitted axes preserve aspect ratio; no size skips resizing and preserves original dimensions. Poll job_status.",
+      "Resize and compress images to WebP. Optional preset clarity prioritizes detail (quality 90); standard remains quality 80. Optional options.ratio W:H center-crops before resizing without enlargement; explicit width and height must match ratio. Without ratio, omitted axes preserve source aspect; no size preserves original dimensions. Poll job_status.",
     parameters: submission(ImageCompressionRequest.fields),
     success,
     failure,
   }).annotate(Tool.Strict, true),
   Tool.make("compress_video", {
     description:
-      "Optional preset clarity uses CRF 18/slow and cover quality 90; standard uses CRF 23/medium. options.audio defaults to keep (first audio track encoded to AAC); remove omits all audio. Resize and compress one video to MP4 and create a first-frame WebP cover matching the resulting video dimensions. Omitted axes preserve aspect ratio; no size skips resizing and preserves original dimensions. Poll job_status.",
+      "Optional preset clarity uses CRF 18/slow and cover quality 90; standard uses CRF 23/medium. options.audio defaults to keep (first audio track encoded to AAC); remove omits all audio. Resize and compress one video to MP4 and create a first-frame WebP cover matching the resulting video dimensions. Optional options.ratio W:H center-crops before resizing without enlargement; explicit width and height must match ratio. Without ratio, omitted axes preserve source aspect; no size preserves original dimensions. Poll job_status.",
     parameters: submission(VideoCompressionRequest.fields),
     success,
     failure,
@@ -135,7 +135,7 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("compress_folder", {
     description:
-      "Recursively compress a folder into a new normalized hierarchy. media selects all (default), images or videos; excluded regular files retain their bytes and format. Optional preset clarity applies to images/videos and video covers. options.audio remove strips audio from selected videos only; keep is default. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional width/height limits preserve image/video ratio; no size preserves original dimensions. Every processed GLB also generates six default 16:9 quality-80 WebP posters using local Chrome; failed posters retain the model with partial status. Poll job_status.",
+      "Recursively compress a folder into a new normalized hierarchy. media selects all (default), images or videos; excluded regular files retain their bytes and format. Optional preset clarity applies to images/videos and video covers. options.audio remove strips audio from selected videos only; keep is default. Copy non-media files unchanged; skip symlinks and .DS_Store. Optional options.ratio W:H center-crops selected images/videos before resizing; explicit width and height must match ratio. No enlargement. Without ratio, width/height preserve source aspect; no size preserves original dimensions. Every processed GLB also generates six default 16:9 quality-80 WebP posters using local Chrome; failed posters retain the model with partial status. Poll job_status.",
     parameters: submission(FolderCompressionRequest.fields),
     success,
     failure,
