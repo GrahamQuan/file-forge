@@ -30,4 +30,4 @@ The audit requested the latest 50 runs with `gh run list --limit 50`; only 16 ex
 
 Queue time is reported from workflow creation to job start, with dependency waiting separated for downstream jobs. GitHub's jobs API does not reveal the exact time a runner was requested, so this cannot be labeled pure runner-capacity wait. Preparation is job start to the start of Vitest; true test time comes from Vitest's duration in the log. Packaging, uploads and teardown are separately reported rather than mislabeled as tests. Historical failures without a final Vitest duration have unavailable test time.
 
-References: [GitHub concurrency and queue limits](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency), [skipped required checks](https://docs.github.com/en/pull-requests/how-tos/merge-pull-requests/troubleshoot-required-status-checks).
+References: [GitHub concurrency and queue limits](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency), [skipped required checks](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
