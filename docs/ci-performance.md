@@ -7,7 +7,7 @@ The release workflow and PR workflow call the same validation workflow. All real
 - PR runs use `cancel-in-progress: true`, grouped by PR number. Manual CI runs are grouped by branch.
 - Main releases use a separate `queue: max`, `cancel-in-progress: false` concurrency group. Version selection, stamped E2E validation and publication share that lock, avoiding version races and the default single-pending-run replacement. GitHub allows at most 100 waiting runs; overflow still requires operator recovery. This is not an unlimited queue or a guarantee against infrastructure failures.
 - Four macOS jobs run independently after path classification: distribution, MCP, model posters/lossless media, and all remaining E2E files. `fail-fast: false` preserves diagnostic coverage. The remaining group automatically includes newly added E2E files. Within each machine, files remain serial to preserve existing process-cleanup assumptions.
-- The distribution shard prepares the offline deploy store and packages the runtime/plugin. Publication waits for every shard and the Ubuntu quality checks. Version selection runs once in the classification job, and every release shard validates that same stamped version. PRs also exercise archive packaging, without publishing.
+- The distribution shard prepares the offline deploy store and retains the exact runtime/plugin archives exercised by its installation test via `FILE_FORGE_CI_ARTIFACT_DIR`. Upload runs only after that shard succeeds; no second archive build is needed. Publication waits for every shard and the Ubuntu quality checks. Version selection runs once in the classification job, and every release shard validates that same stamped version. PRs also exercise archive packaging, without publishing.
 - Four runners per workflow leave one slot under a five-macOS-runner account limit; other workflows and PRs still share the account pool and can queue.
 
 ## Documentation changes and branch protection
@@ -22,7 +22,7 @@ Use `actions/setup-node`'s pnpm cache keyed by OS/architecture and the lockfile.
 
 Use runner-provided Chrome/FFmpeg first. Missing FFmpeg installs with Homebrew `--force-bottle` (precompiled only); Chrome uses its binary cask. There are no Go/Rust tools or Docker builds in this pipeline, so their setup and caches are intentionally absent.
 
-Turborepo already caches workspace builds locally. On the audit machine, a forced build took 8.65 seconds and the immediate cached build 1.11 seconds (28 ms inside Turbo, all four tasks cached). A remote Turbo cache would add complexity and transfers for a small build, so only the dependency cache is persisted. Release stamping changes package versions and source strings; its second build is necessary. Tests run Vitest directly after the build, and packaging invokes the already-built archive entrypoint.
+Turborepo already caches workspace builds locally. On the audit machine, a forced build took 8.65 seconds and the immediate cached build 1.11 seconds (28 ms inside Turbo, all four tasks cached). A remote Turbo cache would add complexity and transfers for a small build, so only the dependency cache is persisted. Release stamping changes package versions and source strings; its second build is necessary. Tests run Vitest directly after the build, and the distribution E2E archive is reused for delivery instead of repackaging it.
 
 ## Timing interpretation
 
