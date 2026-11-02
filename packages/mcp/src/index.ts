@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import {
   Cause,
@@ -30,12 +31,56 @@ import {
 } from "@file-forge/core";
 import { ffmpegLayer, getFfmpegStatus } from "@file-forge/media";
 import { scopeRequest } from "./scope.js";
+import {
+  CheckUploadRequest,
+  FolderListRequest,
+  PlanUploadRequest,
+  ApplyUploadRequest,
+  VerifyUploadRequest,
+  configPath,
+  receiptPathFor,
+  scopeUploadRequest,
+} from "@file-forge/upload";
 const requestId = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(128));
 const success = Schema.Record(Schema.String, Schema.Unknown);
 const failure = Schema.Struct({ code: Schema.String });
 const submission = <S extends Schema.Struct.Fields>(fields: S) =>
   Schema.Struct({ ...fields, requestId });
 const tools = Toolkit.make(
+  ...(
+    [
+      [
+        "check_upload_config",
+        CheckUploadRequest.fields,
+        "Check one explicit project's private upload configuration offline; returns sanitized readiness only.",
+      ],
+      [
+        "list_bucket_folders",
+        FolderListRequest.fields,
+        "Read the current R2 folder hierarchy within the configured project prefix. Optional prefix selects a relative subfolder.",
+      ],
+      [
+        "plan_upload",
+        PlanUploadRequest.fields,
+        "Prepare an offline asset-to-R2 plan for review. No uploads. Directory selection requires recursive=true.",
+      ],
+      [
+        "upload_files",
+        ApplyUploadRequest.fields,
+        "Execute an explicitly user-approved upload plan and digest. Conditional writes; no retries. Preserve receipt for reconciliation.",
+      ],
+      [
+        "verify_upload",
+        VerifyUploadRequest.fields,
+        "Read-only reconciliation of an upload receipt. No PUT, rollback or retry. Absence does not resolve an in-flight uncertain write.",
+      ],
+    ] as const
+  ).map(([name, fields, description]) =>
+    Tool.make(name, { description, parameters: submission(fields), success, failure }).annotate(
+      Tool.Strict,
+      true,
+    ),
+  ),
   Tool.make("file_forge_info", {
     description: "Read runtime compatibility and session limits without processing assets.",
     success,
@@ -139,6 +184,7 @@ type Job = {
   error?: { code: string };
   fiber?: Fiber.Fiber<void, never>;
   workerPid?: number;
+  receiptPath?: string;
 };
 const snapshot = (job: Job) => ({
   schemaVersion: 1,
@@ -146,12 +192,15 @@ const snapshot = (job: Job) => ({
   status: job.status,
   ...(job.result ? { result: job.result } : {}),
   ...(job.error ? { error: job.error } : {}),
+  ...(job.receiptPath ? { receiptPath: job.receiptPath } : {}),
   ...(job.workerPid ? { workerPid: job.workerPid } : {}),
 });
-const handlers = (root: string) =>
+const handlers = (root: string, privateConfig: string) =>
   tools.toLayer(
     Effect.gen(function* () {
       const scope = yield* Scope.Scope;
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
       const paths = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       const jobs = new Map<string, Job>();
@@ -163,7 +212,21 @@ const handlers = (root: string) =>
       const submit = (input: { requestId: string }) =>
         Effect.gen(function* () {
           const { requestId: id, ...payload } = input;
-          const request = yield* scopeRequest(payload, root).pipe(
+          const upload =
+            "operation" in payload &&
+            typeof payload.operation === "string" &&
+            payload.operation.startsWith("upload-");
+          if (!upload) {
+            const ffmpeg = yield* getFfmpegStatus().pipe(
+              Effect.provide(ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg")),
+              Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+            );
+            if (!ffmpeg.available) return yield* Effect.fail({ code: "FFMPEG_REQUIRED" });
+          }
+          const request = yield* Effect.gen(function* () {
+            if (upload) return yield* scopeUploadRequest(payload, root);
+            return yield* scopeRequest(payload, root);
+          }).pipe(
             Effect.provideContext(paths),
             Effect.mapError((error) => ({
               code: "code" in error ? String(error.code) : "INVALID_INPUT",
@@ -181,7 +244,10 @@ const handlers = (root: string) =>
               }
               if (active) return yield* Effect.fail({ code: "BUSY" });
               if (jobs.size >= 128) return yield* Effect.fail({ code: "SESSION_FULL" });
+              const executionToken = randomUUID();
               const job: Job = { requestId: id, fingerprint, status: "running" };
+              if (request.operation === "upload-apply")
+                job.receiptPath = receiptPathFor(request.plan);
               jobs.set(id, job);
               active = true;
               const work = Effect.scoped(
@@ -189,7 +255,12 @@ const handlers = (root: string) =>
                   const child = yield* spawner.spawn(
                     ChildProcess.make(
                       process.execPath,
-                      [fileURLToPath(new URL("./worker.js", import.meta.url))],
+                      [
+                        fileURLToPath(
+                          new URL(upload ? "./upload-worker.js" : "./worker.js", import.meta.url),
+                        ),
+                        ...(upload ? [privateConfig, executionToken] : []),
+                      ],
                       {
                         cwd: root,
                         shell: false,
@@ -224,7 +295,7 @@ const handlers = (root: string) =>
                         error?: { code: string };
                       },
                   );
-                  if (data.result && code === 0) {
+                  if (data.result && (upload || code === 0)) {
                     job.result = data.result;
                     job.status = data.result.status;
                   } else {
@@ -234,7 +305,25 @@ const handlers = (root: string) =>
                 }),
               ).pipe(
                 Effect.onExit((exit) =>
-                  Effect.sync(() => {
+                  Effect.gen(function* () {
+                    if (job.receiptPath && job.workerPid) {
+                      const parent = path.dirname(job.receiptPath);
+                      const actualParent = yield* fs
+                        .realPath(parent)
+                        .pipe(Effect.catch(() => Effect.succeed("")));
+                      const names = yield* (
+                        actualParent === parent
+                          ? fs.readDirectory(parent)
+                          : Effect.succeed([] as string[])
+                      ).pipe(Effect.catch(() => Effect.succeed([] as string[])));
+                      for (const name of names) {
+                        if (name.startsWith(`.upload-stage-${executionToken}-`))
+                          yield* fs.remove(path.join(parent, name), {
+                            recursive: true,
+                            force: true,
+                          });
+                      }
+                    }
                     if (Exit.isFailure(exit)) {
                       job.status = Cause.hasInterrupts(exit.cause) ? "cancelled" : "failed";
                       job.error = {
@@ -260,7 +349,18 @@ const handlers = (root: string) =>
             jobPersistence: "session",
             concurrency: 1,
             maxJobs: 128,
+            upload: {
+              provider: "r2",
+              config: "host-pinned",
+              writeRetries: 0,
+              mediaPrerequisites: false,
+            },
           }),
+        check_upload_config: submit,
+        list_bucket_folders: submit,
+        plan_upload: submit,
+        upload_files: submit,
+        verify_upload: submit,
         inspect_files: submit,
         process_images: submit,
         compress_images: submit,
@@ -293,13 +393,9 @@ const serve = Effect.gen(function* () {
   const root = yield* fs.realPath(selected);
   if ((yield* fs.stat(root)).type !== "Directory")
     return yield* Effect.fail({ code: "ROOT_REQUIRED" });
-  const ffmpeg = yield* getFfmpegStatus().pipe(
-    Effect.provide(ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg")),
-  );
-  if (!ffmpeg.available) return yield* Effect.fail({ code: "FFMPEG_REQUIRED" });
   yield* McpServer.registerToolkit(tools).pipe(
     Effect.andThen(Effect.never),
-    Effect.provide(handlers(root)),
+    Effect.provide(handlers(root, configPath())),
     Effect.provide(
       McpServer.layerStdio({
         name: "file-forge",
@@ -338,7 +434,7 @@ export async function main(): Promise<void> {
         schemaVersion: 1,
         error: { code },
         guidance:
-          "Set FILE_FORGE_ROOT to an accessible workspace and install FFmpeg on PATH or set FFMPEG_PATH.",
+          "Set FILE_FORGE_ROOT to an accessible workspace. Media submissions additionally require FFmpeg on PATH or FFMPEG_PATH.",
       }) + "\n",
     );
     process.exitCode = 1;

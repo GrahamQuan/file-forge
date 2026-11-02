@@ -10,13 +10,6 @@ export const install = (source: string, selectedPrefix: string) =>
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const { metadata, digest } = yield* verify(source, true);
-      const media = yield* Effect.promise(() => import("@file-forge/media"));
-      if (
-        !(yield* media
-          .getFfmpegStatus()
-          .pipe(Effect.provide(media.ffmpegLayer(process.env.FFMPEG_PATH || "ffmpeg")))).available
-      )
-        return yield* problem("FFMPEG_REQUIRED");
       const prefix = path.resolve(selectedPrefix);
       const managed = path.join(prefix, "lib", "file-forge");
       const bin = path.join(prefix, "bin");

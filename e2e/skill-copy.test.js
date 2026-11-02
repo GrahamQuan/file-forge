@@ -7,13 +7,21 @@ import { join, resolve } from "node:path";
 
 test("skill copy previews, installs, detects drift and backs up replacements without touching other skills", async () => {
   const root = await mkdtemp(join(tmpdir(), "file-forge-skill-copy-"));
+  const privateConfig = join(root, "file-forge.upload.local.json");
+  const privateBytes = '{"dummy.example":{"R2_SECRET_ACCESS_KEY":"dummy-lifecycle-secret"}}\n';
+  await writeFile(privateConfig, privateBytes, { mode: 0o600 });
   const source = resolve("skills/file-forge");
   const project = join(root, "Project With Spaces");
   const invoke = (...args) =>
     spawnSync(
       process.execPath,
       [resolve("packages/cli/dist/copy-skill.js"), "--project", project, ...args],
-      { encoding: "utf8", timeout: 10000, cwd: root },
+      {
+        encoding: "utf8",
+        timeout: 10000,
+        cwd: root,
+        env: { ...process.env, FILE_FORGE_UPLOAD_CONFIG: privateConfig },
+      },
     );
   try {
     await mkdir(project);
@@ -78,6 +86,7 @@ test("skill copy previews, installs, detects drift and backs up replacements wit
     assert.equal(JSON.parse(result.stderr).error.code, "SKILL_COPY_LOCKED");
     assert.equal(await readFile(join(target, "local-notes.md"), "utf8"), "still here");
   } finally {
+    assert.equal(await readFile(privateConfig, "utf8"), privateBytes);
     await rm(root, { recursive: true, force: true });
   }
 });

@@ -3,8 +3,8 @@
 [简体中文](README.zh-CN.md)
 
 This preview archive is for macOS Apple Silicon. Install Node.js 22.13 or newer (24 recommended)
-and FFmpeg yourself. Sharp, its native libraries, and vector tracing are included. No npm, pnpm,
-development checkout, network access, or administrator access is required to use this archive.
+yourself; media operations additionally require FFmpeg. Sharp, its native libraries, and vector tracing are included. No npm, pnpm,
+development checkout or administrator access is required. Installation and local media processing work offline; uploads need network access.
 
 Verify the archive before extraction with `shasum -a 256 -c file-forge-0.0.0-darwin-arm64.tar.gz.sha256`.
 Checksums detect corruption; obtain the archive and checksum from a trusted source. This preview is not signed.
@@ -19,7 +19,7 @@ file-forge --version
 file-forge favicon generate /path/to/logo.png --size 64 --output /path/to/output
 ```
 
-The installer accepts `--language en|zh-CN` and `--json`. It checks Node, FFmpeg, the target platform,
+The installer accepts `--language en|zh-CN` and `--json`. It checks Node, the target platform,
 and every payload file/link. Set `FFMPEG_PATH` to your external executable if it is not on PATH.
 It does not edit your shell configuration. Use `file-forge config set language zh-CN` to save CLI language.
 
@@ -41,7 +41,7 @@ The current source supports image/video/folder compression, inspection, conversi
 source-directory rename preview/apply, versioned manifest export, and session-local MCP jobs. With no
 width/height, compression preserves original dimensions. Check this archive’s help for its capabilities.
 GitHub Actions publishes tested patch releases with a separate matching plugin ZIP and checksums.
-Uploads, durable jobs, automatic updates, and other distribution platforms remain unimplemented.
+Durable jobs, automatic updates, and other distribution platforms remain unimplemented.
 The reusable project skill and its copy helper are maintained in the source checkout; runtime
 installation does not copy that skill into projects or register the Codex plugin.
 Third-party licenses are retained alongside the included production dependencies in `runtime/node_modules`.
@@ -61,3 +61,15 @@ Image, video and folder compression support `--preset clarity`: image/cover qual
 Select a single file with its media command, or use `folder compress PATH --media videos --width 512` to resize only videos recursively. `--media images` selects images; omission processes all supported media. Other files retain their bytes/format in the normalized output copy. Codex remembers settings only within the current chat; new chats start with normal defaults.
 
 Video/folder compression supports `--audio remove` to omit video audio, or `--audio keep` (default) to encode the first audio track as AAC 128 kb/s. Only selected videos are affected; silent input is supported. Originals and standalone audio files are preserved by their existing workflows.
+
+## Project uploads
+
+Installation and upload-only use do not require FFmpeg/Chrome; media operations retain their prerequisites. Commands are `upload config check`, `upload plan`, `upload apply` and `upload verify`, each with explicit `--project`. The user maintains private `file-forge.upload.local.json` outside runtime/rollback/skill trees; `FILE_FORGE_UPLOAD_CONFIG` selects its path. Agents use sanitized checks and never read/edit the real config. Review a plan before authorizing conditional writes; retain plans, execution markers and receipts, never blindly replay. R2 only; no automatic retries, remote rollback or website-link updates. Packaged `@file-forge/upload/schema` contains placeholders and a schema. Live R2/CDN acceptance requires separate authorization; local protocol tests do not establish it.
+
+CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
+
+Use `upload apply --progress table` for a progress table, or `--progress lines` for plain lines. The default `auto` selects a live table in suitable terminals. R2 confirmation and public URL status have separate columns; progress stays on stderr.
+
+For bucket uploads, check the private project JSON first with `upload config check --project KEY`. Missing or incomplete configuration stops upload work; the CLI asks for local setup on stderr and exits without waiting for credential input.
+
+Use `file-forge upload folders --project KEY` to inspect the current R2 folder tree under the project’s configured prefix. Use `--prefix assets` for a subfolder or `--json` for full folder prefixes.

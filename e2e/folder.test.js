@@ -25,6 +25,9 @@ test("folder CLI preserves sources, normalizes hierarchy, handles partial failur
     const original = await readFile(image);
     await writeFile(join(input, "Read Me.txt"), "unchanged bytes");
     await writeFile(join(input, ".DS_Store"), "metadata");
+    const privateConfig = join(input, "file-forge.upload.local.json");
+    const privateBytes = '{"dummy.example":{"R2_SECRET_ACCESS_KEY":"dummy-folder-secret"}}';
+    await writeFile(privateConfig, privateBytes, { mode: 0o600 });
     await symlink(image, join(input, "Link.png"));
     const video = join(nested, "My Clip.mp4");
     const made = spawnSync(
@@ -61,6 +64,11 @@ test("folder CLI preserves sources, normalizes hierarchy, handles partial failur
       assert.equal(result.status, 0, result.stdout + result.stderr);
       const manifest = JSON.parse(result.stdout);
       assert.equal(manifest.parameters.image.media, selection);
+      const privateEntry = manifest.assets.find(
+        (asset) => asset.originalName === "file-forge.upload.local.json",
+      );
+      assert.equal(privateEntry.errorCode, "PRIVATE_CONFIG_SKIPPED");
+      assert.equal(privateEntry.output, undefined);
       const selected = manifest.assets.find(
         (a) =>
           a.originalName === basename(selection === "images" ? image : video) &&
@@ -127,7 +135,7 @@ test("folder CLI preserves sources, normalizes hierarchy, handles partial failur
         await readFile(join(manifest.directory, "example-com", "read-me.txt"), "utf8"),
         "unchanged bytes",
       );
-      assert.equal(manifest.assets.filter((a) => a.status === "skipped").length, 2);
+      assert.equal(manifest.assets.filter((a) => a.status === "skipped").length, 3);
       const cover = await sharp(join(output, "my-clip.webp")).metadata();
       const encoded = manifest.assets.find((a) => a.kind === "video");
       assert.deepEqual([cover.width, cover.height], [encoded.outputWidth, encoded.outputHeight]);
@@ -150,6 +158,7 @@ test("folder CLI preserves sources, normalizes hierarchy, handles partial failur
       );
     }
     assert.deepEqual(await readFile(image), original);
+    assert.equal(await readFile(privateConfig, "utf8"), privateBytes);
     assert.deepEqual(await readFile(video), videoOriginal);
     assert.equal(cli("folder", "compress", input, "--output", join(input, "new", "out")).status, 2);
     await symlink(input, join(root, "alias"));

@@ -4,7 +4,7 @@
 
 Local media processing for people, scripts, and coding agents, powered by Sharp and FFmpeg. Available through a CLI and local MCP tools.
 
-**Source capabilities:** image/video/folder compression, lossless audio/music and GLB JSON optimization, six-angle 3D posters, image conversion, favicon generation, inspection, explicit source-folder renaming, and versioned delivery manifests are implemented. Uploads, persistent jobs, and self-update are not yet implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
+**Source capabilities:** image/video/folder compression, lossless audio/music and GLB JSON optimization, six-angle 3D posters, image conversion, favicon generation, inspection, explicit source-folder renaming, and versioned delivery manifests are implemented. Explicit project-based R2 upload planning, conditional execution and reconciliation are implemented locally; live R2/CDN acceptance remains unverified. Persistent jobs and self-update are not implemented. GitHub release automation is configured; availability depends on a successful main-branch run.
 
 Source folders can also be renamed explicitly with `folder rename INPUT --renames PLAN.json`: preview by default, `--apply` to apply an exact root/subfolder mapping. File contents remain unchanged; see [usage](docs/usage.md#rename-original-folders-explicitly).
 
@@ -97,7 +97,7 @@ See the [product scope](specs/20261009-first-draft/PRODUCT.md), [technical desig
 
 ## Automatic releases
 
-Pushes to `main` run `pnpm check` and real E2E on macOS arm64 before publishing the next patch version (`0.0.1`, `0.0.2`, ...). Pull requests only validate. Each release includes the runtime archive, a matching plugin ZIP, and SHA-256 sidecars. Verify the checksum before extraction, then run the archive installer. To upgrade, install the newer archive using the same prefix and reconnect Codex MCP; automatic `--upgrade` remains unavailable. Install/configure the matching plugin separately. Node.js and FFmpeg remain external prerequisites.
+Pushes to `main` run `pnpm check` and real E2E on macOS arm64 before publishing the next patch version (`0.0.1`, `0.0.2`, ...). Pull requests only validate. Each release includes the runtime archive, a matching plugin ZIP, and SHA-256 sidecars. Verify the checksum before extraction, then run the archive installer. To upgrade, install the newer archive using the same prefix and reconnect Codex MCP; automatic `--upgrade` remains unavailable. Install/configure the matching plugin separately. Node.js remains an external prerequisite; media operations additionally require FFmpeg.
 
 Release tags identify the tested source commit; CI stamps release versions in its disposable checkout. No version commits are pushed back to main. Completed release reruns do not publish duplicates. Failed drafts require inspection/recovery and are never overwritten automatically; reserved tags may leave version gaps. The repository must allow GitHub Actions to write releases/tags. Local checks do not establish whether a particular remote workflow or release succeeded; verify it on GitHub.
 
@@ -114,3 +114,13 @@ Image, video and folder compression support `--preset clarity`: image/cover qual
 Select a single file with its media command, or use `folder compress PATH --media videos --width 512` to resize only videos recursively. `--media images` selects images; omission processes all supported media. Other files retain their bytes/format in the normalized output copy. Codex remembers settings only within the current chat; new chats start with normal defaults.
 
 Video/folder compression supports `--audio remove` to omit video audio, or `--audio keep` (default) to encode the first audio track as AAC 128 kb/s. Only selected videos are affected; silent input is supported. Originals and standalone audio files are preserved by their existing workflows.
+
+Project uploads use a separate Effect package and an explicit user-maintained private project map. Review plans before authorizing writes; no automatic retries, remote rollback or website-link updates. Upload-only use and installation do not require FFmpeg/Chrome. See [project uploads](docs/project-uploads.md).
+
+CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
+
+Use `upload apply --progress table` for a progress table, or `--progress lines` for plain lines. The default `auto` selects a live table in suitable terminals. R2 confirmation and public URL status have separate columns; progress stays on stderr.
+
+For bucket uploads, check the private project JSON first with `upload config check --project KEY`. Missing or incomplete configuration stops upload work; the CLI asks for local setup on stderr and exits without waiting for credential input.
+
+Use `file-forge upload folders --project KEY` to inspect the current R2 folder tree under the project’s configured prefix. Use `--prefix assets` for a subfolder or `--json` for full folder prefixes.

@@ -33,7 +33,7 @@ Manifest versions: v1 inspection/image/video/export, v2 folder delivery, v3 sour
 
 Implemented: local macOS arm64 archives and managed installation/rollback, plugin ZIP packaging, checksums, and gated GitHub Actions patch releases on `main`. Runtime and plugin are separately installed; Node/FFmpeg remain external prerequisites. Verify actual published assets rather than treating local checks as remote-release evidence.
 
-Not implemented as FileForge CLI/MCP features: S3 uploads, durable job storage, automatic `--upgrade`, general audio editing/composition or arbitrary FFmpeg filters, lossy model optimization, and built-in HyperFrames rendering. HyperFrames can be orchestrated externally for an explicitly requested motion workflow. Proposed workflow scripts in older specs are not available unless listed in the actual package scripts/help.
+Not implemented as FileForge CLI/MCP features: generic S3 providers, durable job storage, automatic `--upgrade`, general audio editing/composition or arbitrary FFmpeg filters, lossy model optimization, and built-in HyperFrames rendering. HyperFrames can be orchestrated externally for an explicitly requested motion workflow. Proposed workflow scripts in older specs are not available unless listed in the actual package scripts/help.
 
 Video covers use the same basename as their MP4: standalone `video.mp4` / `video.webp`, or the normalized source basename in folder deliveries. Cover/image path collisions fail folder preflight before output creation.
 
@@ -48,3 +48,9 @@ Opt in to `--preset clarity` for higher image/video detail retention with compre
 Folder processing supports `--media all|images|videos`; non-selected files are copied unchanged. See [media selection and chat preferences](media-selection.md).
 
 Video audio defaults to keep; opt in to `--audio remove` for videos or selected videos in folders. See [video audio controls](video-audio.md).
+
+Project-based R2 uploads: `upload folders`, `upload config check`, `upload plan`, `upload apply`, `upload verify`; MCP `list_bucket_folders`, `check_upload_config`, `plan_upload`, `upload_files`, `verify_upload`. Independent package, private user-owned config, explicit project/approval, conditional writes, durable sanitized receipts and read-only reconciliation. Upload and MCP startup require no FFmpeg/Chrome; media submission still checks FFmpeg. Local protocol evidence does not establish live R2/CDN compatibility. See [project uploads](project-uploads.md). Folder deliveries exclude default-named private upload configuration.
+
+CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
+
+Use `upload apply --progress table` for a progress table, or `--progress lines` for plain lines. The default `auto` selects a live table in suitable terminals. R2 confirmation and public URL status have separate columns; progress stays on stderr.

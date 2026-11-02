@@ -120,7 +120,7 @@ file-forge config set language en
 
 English is the default. `--language en|zh-CN` overrides presentation for one invocation. Machine keys, error codes, and MCP schemas stay English.
 
-Do not promise S3 uploads, built-in HyperFrames rendering, persistent jobs, or automatic self-update: those features are not implemented CLI/MCP capabilities. An agent can orchestrate external tools separately when requested, but must not describe that as an implemented FileForge command.
+Do not promise generic S3 providers, built-in HyperFrames rendering, persistent jobs, or automatic self-update: those features are not implemented CLI/MCP capabilities. An agent can orchestrate external tools separately when requested, but must not describe that as an implemented FileForge command.
 
 ## Compress an entire folder
 
@@ -178,3 +178,9 @@ Opt in to `--preset clarity` for higher image/video detail retention with compre
 Folder processing supports `--media all|images|videos`; non-selected files are copied unchanged. See [media selection and chat preferences](media-selection.md).
 
 Video audio defaults to keep; opt in to `--audio remove` for videos or selected videos in folders. See [video audio controls](video-audio.md).
+
+## Project uploads
+
+See [project uploads](project-uploads.md) for configuration and exact CLI/MCP commands. The user maintains a private project-map JSON outside installed runtime, rollback, skills and delivery trees. Agents use sanitized checks and never read/edit the real file. Set `FILE_FORGE_UPLOAD_CONFIG` in the MCP host environment; individual tools cannot supply it. Installation and upload-only use require Node.js but not FFmpeg/Chrome; media operations retain their prerequisites. Existing published versions may predate this source feature.
+
+Use `file-forge upload folders --project KEY` to inspect the current R2 folder tree under the project’s configured prefix. Use `--prefix assets` for a subfolder or `--json` for full folder prefixes.

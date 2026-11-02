@@ -7,6 +7,7 @@ Use current code/help and these guides to determine what is implemented. Older s
 - [Installation and Codex setup](installation.md): prerequisites, runtime/plugin installation, verification, upgrade and rollback.
 - [Six-angle 3D posters](model-posters.md): quality-80 lossy WebP views, camera axes, canvas sizes, optional browser dependency and schema-v5 manifests.
 - [Lossless audio/music and GLB](lossless-audio-models.md): supported formats, preservation checks, unchanged results, automatic GLB posters and v4/v6 manifests.
+- [Project uploads](project-uploads.md): private project configuration, offline review plans, conditional writes, receipts and read-only reconciliation.
 - [Usage](usage.md): actual command examples, folder deliveries, source-folder rename plans and result reporting.
 - [Skill distribution](skill-distribution.md): canonical skill ownership and copying it into projects such as ProductDesignSkills.
 - [Reusable FileForge skill](../skills/file-forge/SKILL.md): routing map with focused references and stop-and-ask behavior.

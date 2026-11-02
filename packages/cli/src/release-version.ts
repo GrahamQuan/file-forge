@@ -17,7 +17,7 @@ const stamp = (version: string | undefined) =>
     const changes: Array<[string, string]> = [];
     for (const name of [
       "package.json",
-      ...["cli", "core", "media", "mcp"].map((p) => `packages/${p}/package.json`),
+      ...["cli", "core", "media", "mcp", "upload"].map((p) => `packages/${p}/package.json`),
     ]) {
       const manifest = JSON.parse(yield* read(name));
       if (manifest.version !== previous) return yield* problem("VERSION_MISMATCH");

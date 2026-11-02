@@ -19,6 +19,7 @@
     "@file-forge/core": "workspace:*",
     "@file-forge/mcp": "workspace:*",
     "@file-forge/media": "workspace:*",
+    "@file-forge/upload": "workspace:*",
     "effect": "4.0.2"
   },
   "engines": {

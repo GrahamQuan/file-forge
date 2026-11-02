@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Does not generate new artwork or upload files.
+description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Also supports explicitly approved project-based R2 uploads. Does not generate new artwork.
 ---
 
 # FileForge
@@ -10,7 +10,15 @@ Choose the route from the user’s need: built-in FileForge when it fits, or [cu
 For built-in operations use the configured FileForge MCP server. First call `file_forge_info` and verify
 runtime version `0.0.0`, the authorized root, and session limits. If setup fails, read
 [setup](../../SETUP.md); report the missing prerequisite. Never silently install or upgrade anything.
-Node.js >=22.13 and user-installed FFmpeg are required; Sharp is included with the runtime.
+Node.js >=22.13 is required; media submissions also require user-installed FFmpeg; Sharp is included with the runtime.
+
+## Project bucket uploads
+
+For an explicit bucket upload, get the exact project key and check the private project JSON **before preparing any assets**. Use `check_upload_config` and wait for a successful terminal job result, or run `file-forge upload config check --project KEY --json`. If the file is missing, empty, unsafe, incomplete (even for another listed project), or lacks the selected key, stop. Ask the user to configure it privately and tell you when to recheck. Never request credentials or open the JSON yourself. While blocked, do not generate test files, plan destinations, or start a transfer.
+
+For a request to inspect existing bucket folders, check configuration first, then run `file-forge upload folders --project KEY` or `list_bucket_folders`. Show the returned tree.
+
+After readiness passes, follow [the upload workflow](references/uploads.md): make the offline plan, show exact mappings, obtain upload authorization, then apply. CLI `--progress table` shows per-file and overall progress; R2 confirmation and public URL checks are separate. Upload-only work needs no FFmpeg or Chrome.
 
 ## Image/video compression workflow
 
@@ -97,7 +105,7 @@ CLI supports `--recursive` and `--language en|zh-CN`, plus `config get language`
 1 partial/failure, 2 invalid arguments/configuration, and 130 cancellation. CLI cancellation waits for
 active media work; retain completed outputs and inspect delivery metadata.
 
-No uploads, general audio/composition CLI operations, ZIP intake, SVG-to-JSX, specialized delivery
+No general audio/composition CLI operations, ZIP intake, SVG-to-JSX, specialized delivery
 formats, persistent jobs, or self-update are implemented. Do not invent tools or promise those features.
 
 ## Explicit source-folder renaming

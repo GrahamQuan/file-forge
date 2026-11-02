@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FileForge private upload project map",
+  "description": "Runtime additionally enforces duplicate-key rejection, safe prefixes, protection, reserved keys and credential placeholders. Never paste real credentials into agent context.",
+  "type": "object",
+  "maxProperties": 100,
+  "propertyNames": {
+    "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+    "maxLength": 128,
+    "not": {
+      "enum": ["constructor", "prototype", "__proto__"]
+    }
+  },
+  "additionalProperties": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "CONFIG_VERSION",
+      "R2_ENDPOINT",
+      "R2_BUCKET",
+      "R2_REGION",
+      "R2_PUBLIC_BASE_URL",
+      "FILE_PATH",
+      "R2_ACCESS_KEY_ID",
+      "R2_SECRET_ACCESS_KEY"
+    ],
+    "properties": {
+      "CONFIG_VERSION": {
+        "const": 1
+      },
+      "R2_ENDPOINT": {
+        "type": "string",
+        "pattern": "^https://[a-f0-9]{32}(\\.(eu|fedramp|us))?\\.r2\\.cloudflarestorage\\.com/?$"
+      },
+      "R2_BUCKET": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+      },
+      "R2_REGION": {
+        "const": "auto"
+      },
+      "R2_PUBLIC_BASE_URL": {
+        "type": "string",
+        "pattern": "^https://[^/:?#@]+/?$"
+      },
+      "FILE_PATH": {
+        "type": "string"
+      },
+      "R2_ACCESS_KEY_ID": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^\\s<>]+$"
+      },
+      "R2_SECRET_ACCESS_KEY": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^\\s<>]+$"
+      }
+    }
+  }
+}

@@ -73,6 +73,8 @@ export const inventory = (root: string, installed = false) =>
     ): Effect.Effect<void, DistributionError | import("effect/PlatformError").PlatformError> =>
       Effect.gen(function* () {
         for (const name of (yield* fs.readDirectory(path.join(root, relative))).sort()) {
+          if (name === "file-forge.upload.local.json")
+            return yield* problem("PRIVATE_CONFIG_EXCLUDED");
           const key = relative ? `${relative}/${name}` : name;
           if (key === "distribution.json" || (installed && key === ".file-forge-install.json"))
             continue;

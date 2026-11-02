@@ -1,0 +1,12 @@
+{
+  "example.com": {
+    "CONFIG_VERSION": 1,
+    "R2_ENDPOINT": "https://<ACCOUNT_ID>.r2.cloudflarestorage.com",
+    "R2_BUCKET": "example-assets",
+    "R2_REGION": "auto",
+    "R2_PUBLIC_BASE_URL": "https://example.com",
+    "FILE_PATH": "",
+    "R2_ACCESS_KEY_ID": "<ENTER_LOCALLY>",
+    "R2_SECRET_ACCESS_KEY": "<ENTER_LOCALLY>"
+  }
+}

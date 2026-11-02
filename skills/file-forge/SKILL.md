@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Set up FileForge and its Codex plugin, check media-tool prerequisites, and use FileForge to inspect, compress, resize or convert local images, videos and folders, losslessly optimize audio/music and GLB models, render six-angle GLB posters, rename explicitly selected source folders, generate favicons, and export delivery manifests. Use for FileForge installation, upgrades, troubleshooting, and local media requests, including custom Sharp/FFmpeg processing beyond built-in workflows.
+description: Set up FileForge and its Codex plugin, check media-tool prerequisites, and use FileForge to inspect, compress, resize or convert local images, videos and folders, losslessly optimize audio/music and GLB models, render six-angle GLB posters, rename explicitly selected source folders, generate favicons, export delivery manifests, and perform explicitly approved project-based R2 uploads. Use for FileForge installation, upgrades, troubleshooting, and local media requests, including custom Sharp/FFmpeg processing beyond built-in workflows.
 ---
 
 # FileForge
@@ -8,6 +8,14 @@ description: Set up FileForge and its Codex plugin, check media-tool prerequisit
 This skill is maintained only in the FileForge repository at `skills/file-forge`. Project installations are complete copies: a copy request creates or replaces the entire target from that source, without merging consumer edits. Update the canonical skill and affected docs whenever FileForge code changes.
 
 Use this as the entry map. Read only the references needed for the current request; do not load the whole directory.
+
+## Project bucket uploads
+
+For an explicit bucket upload, get the exact project key and check the private project JSON **before preparing any assets**. Use `check_upload_config` and wait for a successful terminal job result, or run `file-forge upload config check --project KEY --json`. If the file is missing, empty, unsafe, incomplete (even for another listed project), or lacks the selected key, stop. Ask the user to configure it privately and tell you when to recheck. Never request credentials or open the JSON yourself. While blocked, do not generate test files, plan destinations, or start a transfer.
+
+For a request to inspect existing bucket folders, check configuration first, then run `file-forge upload folders --project KEY` or `list_bucket_folders`. Show the returned tree.
+
+After readiness passes, follow [the upload workflow](references/uploads.md): make the offline plan, show exact mappings, obtain upload authorization, then apply. CLI `--progress table` shows per-file and overall progress; R2 confirmation and public URL checks are separate. Upload-only work needs no FFmpeg or Chrome.
 
 ## Start here
 
@@ -29,7 +37,7 @@ This rule governs every reference. A request to process files does not by itself
 - Preserve completed output on partial failure. Report it, then ask how to handle the failed items rather than rerunning the whole batch.
 - Omitted optional values are not missing essential information: no width/height means original size for image/video resizing (3D posters have their own canvas defaults), and macOS output defaults to Downloads when compatible with the selected route and authorized root. Do not ask for dimensions just because they were omitted.
 
-Example: “FFmpeg is not installed, so FileForge cannot start. I recommend installing it with your existing Homebrew setup (`brew install ffmpeg`), then rerunning the check. Shall I install it, or will you provide an existing FFmpeg path?”
+Example: “FFmpeg is not installed, so this FileForge media operation cannot start. I recommend installing it with your existing Homebrew setup (`brew install ffmpeg`), then rerunning the check. Shall I install it, or will you provide an existing FFmpeg path?”
 
 Example: “The plugin is installed but its tools are unavailable in this chat. I recommend reconnecting in a fresh chat. Would you prefer that, or should I use the FileForge CLI for this task?”
 

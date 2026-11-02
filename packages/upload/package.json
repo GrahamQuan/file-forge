@@ -1,0 +1,26 @@
+{
+  "name": "@file-forge/upload",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "dist",
+    "schema/config.schema.json",
+    "schema/example.json"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.2",
+    "effect": "4.0.2",
+    "saxes": "6.0.0"
+  }
+}

@@ -2,8 +2,8 @@
 
 [English](README.md)
 
-此预览压缩包适用于 macOS Apple Silicon。请自行安装 Node.js 22.13 或更新版本（推荐 24）及 FFmpeg。
-已包含 Sharp、原生库和矢量描摹依赖。使用压缩包无需 npm、pnpm、开发仓库、网络或管理员权限。
+此预览压缩包适用于 macOS Apple Silicon。请自行安装 Node.js 22.13 或更新版本（推荐 24）；媒体操作还需 FFmpeg。
+已包含 Sharp、原生库和矢量描摹依赖。使用压缩包无需 npm、pnpm、开发仓库或管理员权限。安装及本地媒体处理可离线运行；上传需要网络。
 
 解压前运行 `shasum -a 256 -c file-forge-0.0.0-darwin-arm64.tar.gz.sha256` 验证完整性。
 校验和只能检测损坏；请从可信来源获取压缩包及校验和。此预览版未签名。
@@ -18,7 +18,7 @@ file-forge --version
 file-forge favicon generate /path/to/logo.png --size 64 --output /path/to/output
 ```
 
-安装器支持 `--language en|zh-CN` 和 `--json`，检查 Node、FFmpeg、目标平台及所有文件和链接。
+安装器支持 `--language en|zh-CN` 和 `--json`，检查 Node、目标平台及所有文件和链接。
 如果 FFmpeg 不在 PATH 中，请设置 `FFMPEG_PATH`。安装器不会修改 shell 配置。
 使用 `file-forge config set language zh-CN` 保存 CLI 语言偏好。
 
@@ -35,7 +35,7 @@ file-forge favicon generate /path/to/logo.png --size 64 --output /path/to/output
 当前源码支持图片、视频和文件夹压缩、检查、格式转换、网站图标、原目录重命名预览/应用、
 版本化清单导出及会话级 MCP 任务。未指定宽高时保留原尺寸；请查看本压缩包的帮助确认实际能力。
 GitHub Actions 会发布经过验证的补丁版本，并提供单独的匹配插件 ZIP 和校验和。
-上传、持久任务、自动升级及其他分发平台尚未实现。
+持久任务、自动升级及其他分发平台尚未实现。
 可复用的项目 skill 及复制脚本在源码仓库中维护；安装运行时不会复制该 skill 或注册 Codex 插件。
 第三方许可文件随生产依赖保留在 `runtime/node_modules` 中。
 
@@ -54,3 +54,15 @@ GLB 压缩会通过标准图片流程自动生成六张默认 16:9 海报。模�
 单个文件使用对应媒体命令；`folder compress PATH --media videos --width 512` 递归地仅处理视频。`--media images` 仅处理图片，省略则处理所有支持的媒体。其他文件在规范命名的输出副本中保持原字节和格式。Codex 仅在当前聊天记住设置，新聊天恢复默认值。
 
 视频/文件夹压缩支持 `--audio remove` 移除视频音轨，或 `--audio keep`（默认）将首条音轨编码为 AAC 128 kb/s。仅影响选中的视频；支持无音轨输入。源文件和独立音频文件继续遵循现有保留策略。
+
+## 项目上传
+
+仅安装和上传无需 FFmpeg/Chrome；媒体操作仍需要相应依赖。命令为 `upload config check`、`upload plan`、`upload apply` 和 `upload verify`，均需明确 `--project`。用户在运行包/回滚/skill 目录之外维护私密 `file-forge.upload.local.json`；可通过 `FILE_FORGE_UPLOAD_CONFIG` 指定路径。智能体只使用脱敏检查，不读取或修改真实配置。先审核计划，再授权条件写入；保留计划、执行标记及收据，不盲目重放。仅支持 R2，无自动重试、远程回滚或网站链接更新。包内 `@file-forge/upload/schema` 提供占位示例及 schema。真实 R2/CDN 验收需单独授权，目前本地协议验证不代表线上兼容性。
+
+CLI 上传进度在 stderr 显示每个文件及按字节加权的总百分比（包括 `--json` 模式）。100% 表示数据已交给 HTTP 传输层，并不代表 R2 已确认。只有收到 R2 成功响应才报告上传成功；公开 URL 检查单独显示，失败时整体结果仍可能为部分完成。
+
+使用 `upload apply --progress table` 显示进度表格，或使用 `--progress lines` 显示普通文本行。默认 `auto` 在合适的终端中显示实时表格。R2 确认和公开 URL 状态分列显示；进度仍输出到 stderr。
+
+上传到存储桶前，请先用 `upload config check --project KEY` 检查私密项目 JSON。配置缺失或不完整时，CLI 会停止上传流程，在 stderr 提示用户在本机配置后退出，不会等待输入凭据。
+
+使用 `file-forge upload folders --project KEY` 查看该项目配置前缀下的 R2 文件夹树。可用 `--prefix assets` 查看子文件夹，或用 `--json` 输出完整文件夹前缀。

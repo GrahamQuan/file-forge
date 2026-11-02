@@ -25,7 +25,7 @@ test("release staging stamps a real copied checkout and its runnable CLI without
   const original = await readFile("packages/cli/package.json", "utf8");
   try {
     await cp("package.json", join(root, "package.json"));
-    for (const name of ["cli", "core", "media", "mcp", "file-forge-plugin"]) {
+    for (const name of ["cli", "core", "media", "mcp", "upload", "file-forge-plugin"]) {
       await mkdir(join(root, "packages"), { recursive: true });
       await cp(resolve("packages", name), join(root, "packages", name), {
         recursive: true,
@@ -43,7 +43,7 @@ test("release staging stamps a real copied checkout and its runnable CLI without
     const result = await run([join(root, "packages/cli/bin/file-forge.js"), "--version"], root);
     assert.equal(result.code, 0, result.stderr);
     assert.equal(result.stdout, "file-forge 0.0.987\n");
-    for (const name of ["cli", "core", "media", "mcp"])
+    for (const name of ["cli", "core", "media", "mcp", "upload"])
       assert.equal(
         JSON.parse(await readFile(join(root, "packages", name, "package.json"), "utf8")).version,
         "0.0.987",

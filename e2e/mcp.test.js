@@ -153,6 +153,7 @@ test("plugin-backed MCP executes all local operations, scopes paths, deduplicate
     await initialize(client);
     const list = await client.request("tools/list");
     assert.deepEqual(list.result.tools.map((tool) => tool.name).sort(), [
+      "check_upload_config",
       "compress_audio",
       "compress_folder",
       "compress_images",
@@ -165,8 +166,12 @@ test("plugin-backed MCP executes all local operations, scopes paths, deduplicate
       "inspect_files",
       "job_cancel",
       "job_status",
+      "list_bucket_folders",
+      "plan_upload",
       "process_images",
       "rename_folders",
+      "upload_files",
+      "verify_upload",
     ]);
     assert.equal(
       decode(await call(client, "file_forge_info")).root,
@@ -429,8 +434,17 @@ test("MCP cancellation, busy rejection, signal/EOF cleanup, and prerequisite fai
     assert.ok(dead(status.workerPid));
     client = undefined;
     client = await connect(root, { FFMPEG_PATH: join(root, "missing-ffmpeg") });
-    assert.equal((await client.closed)[0], 1);
-    assert.match(client.stderr(), /FFMPEG_REQUIRED/);
+    await initialize(client);
+    assert.equal(
+      decode(
+        await call(client, "inspect_files", {
+          operation: "inspect",
+          files: [join(root, "inputs", "0.png")],
+          requestId: "missing-ffmpeg",
+        }),
+      ).code,
+      "FFMPEG_REQUIRED",
+    );
     await client.close();
     client = undefined;
     client = await connect(root, { FILE_FORGE_ROOT: "" });

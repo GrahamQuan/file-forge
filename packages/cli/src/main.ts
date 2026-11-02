@@ -42,12 +42,22 @@ export async function main(input: readonly string[]): Promise<void> {
     Effect.sync(() => {
       process.stdout.write((flags.json ? JSON.stringify(result) : human) + "\n");
     });
-  const fail = (errorCode: string, human: string, exitCode = 2) =>
+  const fail = (
+    errorCode: string,
+    human: string,
+    exitCode = 2,
+    field?: string,
+    recovery?: { receiptPath?: string; remoteOutcome?: "unknown" },
+  ) =>
     Effect.sync(() => {
       code = exitCode;
       if (flags.json)
         process.stdout.write(
-          JSON.stringify({ schemaVersion: 1, status: "failed", error: { code: errorCode } }) + "\n",
+          JSON.stringify({
+            schemaVersion: 1,
+            status: "failed",
+            error: { code: errorCode, ...(field ? { field } : {}), ...recovery },
+          }) + "\n",
         );
       else process.stderr.write(human + "\n");
     });
@@ -71,8 +81,10 @@ export async function main(input: readonly string[]): Promise<void> {
         flags.args.length === 1 ? 1 : 2,
       );
     }
-    if (flags.help || flags.args.length === 0)
-      return yield* print({ schemaVersion: 1, help: messages[locale].help }, messages[locale].help);
+    if (flags.help || flags.args.length === 0) {
+      const help = flags.args[0] === "upload" ? messages[locale].uploadHelp : messages[locale].help;
+      return yield* print({ schemaVersion: 1, help }, help);
+    }
     if (flags.args[0] === "config") {
       if (flags.args.length === 3 && flags.args[1] === "get" && flags.args[2] === "language") {
         return yield* print(
@@ -95,6 +107,47 @@ export async function main(input: readonly string[]): Promise<void> {
         { language: selected, source: "saved" },
         messages[selected].saved(selected),
       );
+    }
+    if (flags.args[0] === "upload") {
+      if (flags.args.length === 1)
+        return yield* print(
+          { schemaVersion: 1, help: messages[locale].uploadHelp },
+          messages[locale].uploadHelp,
+        );
+      const upload = yield* Effect.promise(() => import("./upload.js"));
+      const result = yield* upload
+        .runUpload(flags.args, locale)
+        .pipe(
+          Effect.catch((error) =>
+            fail(
+              error.code,
+              messages[locale].failed(
+                error.code + ("field" in error && error.field ? `: ${error.field}` : ""),
+              ),
+              error.code === "RECEIPT_WRITE_FAILED" || error.code === "UPLOAD_IO_FAILED" ? 1 : 2,
+              "field" in error ? error.field : undefined,
+              "receiptPath" in error
+                ? { receiptPath: error.receiptPath, remoteOutcome: error.remoteOutcome }
+                : undefined,
+            ).pipe(Effect.as(undefined)),
+          ),
+        );
+      if (result) {
+        code = result.status === "succeeded" ? 0 : result.status === "cancelled" ? 130 : 1;
+        if ("folders" in result) {
+          const root = JSON.stringify(result.bucket + "/" + result.prefix);
+          const rows = result.folders.map((folder) => {
+            const parts = folder.slice(result.prefix.length, -1).split("/");
+            return "  ".repeat(parts.length) + JSON.stringify(parts.at(-1) + "/");
+          });
+          return yield* print(
+            result,
+            [root, ...(rows.length ? rows : [messages[locale].noFolders])].join("\n"),
+          );
+        }
+        return yield* print(result, messages[locale].uploadResult(JSON.stringify(result, null, 2)));
+      }
+      return;
     }
     const media = yield* Effect.promise(() => import("@file-forge/media"));
     const ffmpeg = yield* media

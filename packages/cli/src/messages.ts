@@ -1,6 +1,17 @@
+import type { UploadProgress } from "@file-forge/upload";
 export type Locale = "en" | "zh-CN";
 interface MessageCatalog {
   help: string;
+  uploadHelp: string;
+  noFolders: string;
+  uploadSetup: Partial<Record<string, (file: string) => string>>;
+  uploadTable: {
+    headers: string[];
+    states: Record<string, string>;
+    overall: (percent: number, current: number, total: number) => string;
+  };
+  uploadProgress: (progress: UploadProgress) => string;
+  uploadResult: (details: string) => string;
   installUsage: string;
   installComplete: (executable: string) => string;
   installFailed: (code: string) => string;
@@ -20,8 +31,50 @@ interface MessageCatalog {
 }
 export const messages: Record<Locale, MessageCatalog> = {
   en: {
+    noFolders: "No folders found.",
+    uploadSetup: {
+      UPLOAD_CONFIG_MISSING: (file) =>
+        `Please create the private project JSON at ${file}, or use --config PATH to select your existing file. Fill it in locally, then rerun upload config check --project KEY. Do not share credentials.`,
+      UPLOAD_CONFIG_INVALID: (file) =>
+        `Please complete every project entry in ${file} locally, then rerun upload config check --project KEY. Do not share credentials.`,
+      UPLOAD_PROJECT_UNKNOWN: (file) =>
+        `Please select an exact configured project key or add its entry to ${file} locally, then rerun upload config check --project KEY.`,
+      UPLOAD_CONFIG_UNSAFE: (file) =>
+        `Please check the location, ownership and permissions of ${file}. Use an owner-only regular file (mode 0600) in a private directory, then rerun upload config check --project KEY.`,
+    },
+    uploadTable: {
+      headers: ["#", "File / object key", "Sent", "R2 transfer", "Public URL"],
+      states: {
+        sending: "Sending",
+        awaiting_confirmation: "Awaiting confirmation",
+        confirmed: "R2 confirmed",
+        checking: "Checking",
+        not_attempted: "Not checked",
+        reachable: "Reachable",
+        unreachable: "Unreachable",
+        unknown: "Unknown",
+        conflict: "Conflict",
+        failed: "Failed",
+        not_sent: "Not sent",
+      },
+      overall: (percent, current, total) => `Overall sent: ${percent}% | File ${current}/${total}`,
+    },
+    uploadProgress: (p) => {
+      const phase = {
+        sending: "Sending",
+        awaiting_confirmation: "Awaiting R2 confirmation",
+        confirmed: "Uploaded — R2 confirmed",
+        public_check: "Checking public URL separately",
+        public_result: `Public URL: ${{ reachable: "Reachable", unreachable: "Unreachable", unknown: "Unknown", not_attempted: "Not checked" }[p.publicOutcome ?? "unknown"]}`,
+      }[p.phase];
+      return `[${p.fileIndex}/${p.fileCount}] ${JSON.stringify(p.key)}: ${p.filePercent}% | Overall: ${p.overallPercent}% | ${phase}`;
+    },
+    uploadHelp:
+      "Upload: folders --project KEY [--prefix PATH]; config check --project KEY; plan --project KEY --input PATH --output DIR [--recursive] [--overwrite-key KEY]; apply --project KEY --plan FILE --plan-hash SHA256 [--progress auto|table|lines]; verify --project KEY --receipt FILE. Optional --config PATH, --json, --language en|zh-CN. Review exact contents and mappings before authorizing apply. Config checks are offline. No automatic retries or remote rollback.",
+    uploadResult: (details) => `Upload result (machine fields remain English):\n${details}`,
+
     installUsage:
-      "Usage: ./install.js [--prefix DIR] [--language en|zh-CN] [--json]. Default prefix: ~/.local. Node.js and FFmpeg must already be installed.",
+      "Usage: ./install.js [--prefix DIR] [--language en|zh-CN] [--json]. Default prefix: ~/.local. Node.js must already be installed; media operations additionally require FFmpeg.",
     installComplete: (executable) =>
       `Installed FileForge: ${executable}. Add its bin directory to PATH. Previous builds and user settings were preserved.`,
     installFailed: (code) =>
@@ -44,6 +97,7 @@ Usage:
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
+  file-forge upload [config check|folders|plan|apply|verify] --project KEY [--config PATH] [--json]
   file-forge mcp
   file-forge -v | --version
 Global options: --language en|zh-CN, --help
@@ -58,7 +112,7 @@ Compression preset: --preset clarity uses image/cover quality 90 and video CRF 1
 3D posters: six axis views processed through the shared image workflow as quality-80 lossy WebP without additional resizing, transparent canvas, default 16:9 at 1024x576; --ratio W:H selects another ratio, one dimension derives the other, both set the canvas (16–4096; explicit ratio conflicts fail). Requires Chrome/Chromium; FILE_FORGE_CHROME_PATH selects an absolute executable. Model/folder compression automatically generates six posters per GLB.
 Manifest export accepts existing assets without processing them, or an existing version 1, 2, 3, 4 or 5 manifest.
 Exit codes: 0 success/empty, 1 partial/failure, 2 invalid arguments/configuration, 130 interruption.
-MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition commands, specialized templates, public releases, and upgrades are not implemented.`,
+MCP uses STDIO and requires FILE_FORGE_ROOT. General composition commands, specialized templates, public releases, and upgrades are not implemented.`,
     invalid: "Invalid arguments. Use --help for supported commands and options.",
     settingsInvalid: (file) =>
       `Cannot read valid settings at ${file}. Using English; the file was preserved.`,
@@ -78,8 +132,50 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
       "Self-update is unavailable. Install a separately downloaded FileForge archive, or update your source checkout and rebuild with pnpm build.",
   },
   "zh-CN": {
+    noFolders: "未找到文件夹。",
+    uploadSetup: {
+      UPLOAD_CONFIG_MISSING: (file) =>
+        `请在 ${file} 创建私密项目 JSON，或用 --config PATH 指定已有文件。在本机填写后重新运行 upload config check --project KEY。请勿分享凭据。`,
+      UPLOAD_CONFIG_INVALID: (file) =>
+        `请在本机补全 ${file} 中的每个项目，然后重新运行 upload config check --project KEY。请勿分享凭据。`,
+      UPLOAD_PROJECT_UNKNOWN: (file) =>
+        `请选择已配置的准确项目键，或在本机将项目添加到 ${file}，然后重新运行 upload config check --project KEY。`,
+      UPLOAD_CONFIG_UNSAFE: (file) =>
+        `请检查 ${file} 的位置、所有者和权限。请在私密目录中使用仅所有者可读写的普通文件（权限 0600），然后重新运行 upload config check --project KEY。`,
+    },
+    uploadTable: {
+      headers: ["序号", "文件 / 对象键", "已发送", "R2 传输", "公开 URL"],
+      states: {
+        sending: "正在发送",
+        awaiting_confirmation: "等待确认",
+        confirmed: "R2 已确认",
+        checking: "检查中",
+        not_attempted: "未检查",
+        reachable: "可访问",
+        unreachable: "不可访问",
+        unknown: "未知",
+        conflict: "冲突",
+        failed: "失败",
+        not_sent: "未发送",
+      },
+      overall: (percent, current, total) => `总发送进度：${percent}% | 文件 ${current}/${total}`,
+    },
+    uploadProgress: (p) => {
+      const phase = {
+        sending: "正在发送",
+        awaiting_confirmation: "等待 R2 确认",
+        confirmed: "已上传 — R2 已确认",
+        public_check: "单独检查公开 URL",
+        public_result: `公开 URL：${{ reachable: "可访问", unreachable: "不可访问", unknown: "未知", not_attempted: "未检查" }[p.publicOutcome ?? "unknown"]}`,
+      }[p.phase];
+      return `[${p.fileIndex}/${p.fileCount}] ${JSON.stringify(p.key)}：${p.filePercent}% | 总进度：${p.overallPercent}% | ${phase}`;
+    },
+    uploadHelp:
+      "上传：folders --project KEY [--prefix PATH]；config check --project KEY；plan --project KEY --input PATH --output DIR [--recursive] [--overwrite-key KEY]；apply --project KEY --plan FILE --plan-hash SHA256 [--progress auto|table|lines]；verify --project KEY --receipt FILE。可选 --config PATH、--json、--language en|zh-CN。执行前请审核并授权确切内容和目标。配置检查离线运行，不自动重试或回滚远程对象。",
+    uploadResult: (details) => `上传结果（机器字段保持英文）：\n${details}`,
+
     installUsage:
-      "用法：./install.js [--prefix DIR] [--language en|zh-CN] [--json]。默认目录：~/.local。请先安装 Node.js 和 FFmpeg。",
+      "用法：./install.js [--prefix DIR] [--language en|zh-CN] [--json]。默认目录：~/.local。请先安装 Node.js；媒体操作还需要 FFmpeg。",
     installComplete: (executable) =>
       `FileForge 已安装：${executable}。请将其 bin 目录加入 PATH。旧版本和用户设置已保留。`,
     installFailed: (code) =>
@@ -102,6 +198,7 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
+  file-forge upload [config check|folders|plan|apply|verify] --project KEY [--config PATH] [--json]
   file-forge mcp
   file-forge -v | --version
 全局选项：--language en|zh-CN、--help
@@ -116,7 +213,7 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. Uploads, general composition comman
 3D 海报：六个轴向视图自动经过共享图片流程，不额外缩放，输出质量 80 的有损 WebP、透明画布，默认 16:9（1024×576）；--ratio W:H 可选其他比例，一个尺寸按比例推算另一边，两个尺寸确定画布（16–4096；与明确比例冲突时拒绝处理）。需要 Chrome/Chromium；FILE_FORGE_CHROME_PATH 可指定可执行文件的绝对路径。模型或文件夹压缩会为每个 GLB 自动生成六张默认海报。
 清单导出可接收现有素材而不重新处理，也可接收版本 1、2、3、4 或 5 的现有清单。
 退出码：0 成功或空集合，1 部分成功或失败，2 参数或配置错误，130 中断。
-MCP 使用 STDIO，需要设置 FILE_FORGE_ROOT。上传、通用合成命令、专用模板、公开发布和升级尚未实现。`,
+MCP 使用 STDIO，需要设置 FILE_FORGE_ROOT。通用合成命令、专用模板、公开发布和升级尚未实现。`,
     invalid: "参数无效。使用 --help 查看支持的命令和选项。",
     settingsInvalid: (file) => `无法读取 ${file} 中的有效设置。使用英语，原文件已保留。`,
     settingsFailed: "无法保存语言设置。原设置已保留，请检查文件、权限和锁。",

@@ -86,11 +86,20 @@ export const compressFolder = (
             kind: "unsupported",
             status: "inspected",
           };
-          if (name === ".DS_Store" || (yield* isSymlink(file))) {
+          if (
+            name === ".DS_Store" ||
+            name === "file-forge.upload.local.json" ||
+            (yield* isSymlink(file))
+          ) {
             assets.push({
               ...asset,
               status: "skipped",
-              errorCode: name === ".DS_Store" ? "METADATA_SKIPPED" : "SYMLINK_SKIPPED",
+              errorCode:
+                name === "file-forge.upload.local.json"
+                  ? "PRIVATE_CONFIG_SKIPPED"
+                  : name === ".DS_Store"
+                    ? "METADATA_SKIPPED"
+                    : "SYMLINK_SKIPPED",
             });
             continue;
           }

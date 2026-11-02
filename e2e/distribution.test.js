@@ -48,12 +48,26 @@ const successful = (result) => {
 test("downloadable runtime installs offline and runs native CLI/MCP without checkout or package managers", async () => {
   const root = await mkdtemp("/private/tmp/file-forge-distribution-");
   let server;
+  const privateConfig = join(root, "file-forge.upload.local.json");
+  const privateBytes = JSON.stringify({
+    "package.example": {
+      CONFIG_VERSION: 1,
+      R2_ENDPOINT: `https://${"a".repeat(32)}.r2.cloudflarestorage.com`,
+      R2_BUCKET: "packaged-assets",
+      R2_REGION: "auto",
+      R2_PUBLIC_BASE_URL: "https://cdn.example.com",
+      FILE_PATH: "",
+      R2_ACCESS_KEY_ID: "dummy-package-access",
+      R2_SECRET_ACCESS_KEY: "dummy-package-secret",
+    },
+  });
+  await writeFile(privateConfig, privateBytes, { mode: 0o600 });
   try {
     const packed = successful(
       await run(
         process.execPath,
         [resolve("packages/cli/dist/archive.js"), "--output", join(root, "archives")],
-        process.env,
+        { ...process.env, FILE_FORGE_UPLOAD_CONFIG: privateConfig },
         process.cwd(),
       ),
     );
@@ -95,6 +109,7 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
       FFMPEG_PATH: ffmpeg,
       FILE_FORGE_CONFIG_DIR: join(root, "settings"),
       NODE_PATH: "",
+      FILE_FORGE_UPLOAD_CONFIG: privateConfig,
     };
     assert.notEqual((await run("/usr/bin/which", ["pnpm"], env, root)).code, 0);
     assert.notEqual((await run("/usr/bin/which", ["npm"], env, root)).code, 0);
@@ -114,6 +129,22 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
       `file-forge ${runtimeVersion}\n`,
     );
     assert.equal((await run(join(source, "file-forge.js"), ["--help"], env, root)).code, 0);
+    const uploadCheck = successful(
+      await run(
+        executable,
+        ["upload", "config", "check", "--project", "package.example", "--json"],
+        {
+          ...env,
+          FFMPEG_PATH: join(root, "missing"),
+          FILE_FORGE_CHROME_PATH: join(root, "missing-chrome"),
+        },
+        root,
+      ),
+    );
+    assert.equal(uploadCheck.readiness, "offline");
+    const inventory = JSON.parse(await readFile(join(source, "distribution.json"), "utf8"));
+    assert.ok(!JSON.stringify(inventory).includes("file-forge.upload.local.json"));
+    assert.ok(JSON.stringify(inventory).includes("upload"));
     const originalTarget = await readlink(executable);
     const managed = join(prefix, "lib/file-forge");
     const originalDirs = await readdir(managed);
@@ -273,7 +304,7 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
       { ...env, FFMPEG_PATH: join(root, "missing") },
       root,
     );
-    assert.equal(JSON.parse(missing.stdout).error.code, "FFMPEG_REQUIRED");
+    assert.equal(missing.code, 0, missing.stderr + missing.stdout);
     const noNode = await run(
       "/bin/sh",
       [join(source, "install.js")],
@@ -340,6 +371,7 @@ test("downloadable runtime installs offline and runs native CLI/MCP without chec
       clearTimeout(timer);
       assert.ok(gone(server.pid));
     }
+    assert.equal(await readFile(privateConfig, "utf8"), privateBytes);
     await rm(root, { recursive: true, force: true });
   }
 });
