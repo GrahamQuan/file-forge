@@ -149,9 +149,9 @@ jobs:
         run: |
           case "$SUITE" in
             distribution) pnpm exec vitest run e2e/distribution.test.js ;;
-            mcp) pnpm exec vitest run e2e/mcp.test.js ;;
-            models) pnpm exec vitest run e2e/posters.test.js e2e/lossless.test.js ;;
-            remaining) pnpm exec vitest run --exclude e2e/distribution.test.js --exclude e2e/mcp.test.js --exclude e2e/posters.test.js --exclude e2e/lossless.test.js ;;
+            mcp) pnpm exec vitest run e2e/mcp.test.js e2e/favicon.test.js ;;
+            models) pnpm exec vitest run e2e/posters.test.js e2e/lossless.test.js e2e/cli-foundation.test.js ;;
+            remaining) pnpm exec vitest run --exclude e2e/distribution.test.js --exclude e2e/mcp.test.js --exclude e2e/posters.test.js --exclude e2e/lossless.test.js --exclude e2e/favicon.test.js --exclude e2e/cli-foundation.test.js ;;
             *) exit 1 ;;
           esac
       - name: Save verified artifacts
