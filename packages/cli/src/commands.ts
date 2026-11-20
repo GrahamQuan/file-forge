@@ -79,7 +79,7 @@ export const commands = (
         width: Flag.Int("width").pipe(Flag.optional),
         height: Flag.Int("height").pipe(Flag.optional),
         ratio: Flag.String("ratio").pipe(Flag.optional),
-        ...(kind === "image" ? { blurFill } : {}),
+        ...(kind === "folder" ? {} : { blurFill }),
         quality: Flag.Int("quality").pipe(Flag.optional),
         preset: Flag.String("preset").pipe(Flag.optional),
         media: Flag.String("media").pipe(Flag.optional),
@@ -151,7 +151,42 @@ export const commands = (
   const image = Command.make("image").pipe(
     Command.withSubcommands([processCommand, compression("image")]),
   );
-  const video = Command.make("video").pipe(Command.withSubcommands([compression("video")]));
+  const processVideo = Command.make(
+    "process",
+    {
+      input: Argument.String("input"),
+      output,
+      blurFill,
+      width: Flag.Int("width").pipe(Flag.optional),
+      height: Flag.Int("height").pipe(Flag.optional),
+      ratio: Flag.String("ratio").pipe(Flag.optional),
+      audio: Flag.String("audio").pipe(Flag.optional),
+    },
+    (args) =>
+      Effect.gen(function* () {
+        if (!args.blurFill)
+          return yield* new OperationError({
+            code: "INVALID_INPUT",
+            detail: "Video process requires --blur-fill",
+          });
+        const result = yield* executeRequest({
+          operation: "video",
+          input: args.input,
+          output: yield* outputParent(args.output),
+          options: {
+            padding: "blur",
+            ...(Option.isSome(args.width) ? { width: args.width.value } : {}),
+            ...(Option.isSome(args.height) ? { height: args.height.value } : {}),
+            ...(Option.isSome(args.ratio) ? { ratio: args.ratio.value } : {}),
+            ...(Option.isSome(args.audio) ? { audio: args.audio.value } : {}),
+          },
+        });
+        yield* emit(result);
+      }),
+  );
+  const video = Command.make("video").pipe(
+    Command.withSubcommands([processVideo, compression("video")]),
+  );
   const delivery = Command.make(
     "export",
     {

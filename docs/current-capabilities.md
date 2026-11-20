@@ -7,7 +7,8 @@ This describes the current source checkout, not a guarantee about any installed 
 | Image metadata            | `inspect`                               | `inspect_files`            | Read-only image inspection; recursive only when requested                         |
 | Image compression         | `image compress`                        | `compress_images`          | WebP, default quality 80; optional bounds, centered ratio crop or blurred padding |
 | Image conversion          | `image process`                         | `process_images`           | WebP/JPEG/PNG/AVIF, at least one explicit processing option                       |
-| Video compression         | `video compress`                        | `compress_video`           | H.264 MP4, optional AAC, matching first-frame WebP cover                          |
+| Video blur-fill           | `video process`                         | `process_video`            | Explicit blurred padding with H.264 MP4 and first-frame PNG cover                 |
+| Video compression         | `video compress`                        | `compress_video`           | H.264 MP4, optional AAC and blurred padding, matching first-frame WebP cover      |
 | Folder compression        | `folder compress`                       | `compress_folder`          | Recursive new copy with normalized hierarchy; other regular files copied          |
 | Original directory rename | `folder rename`                         | `rename_folders`           | Explicit relative-path/name map; preview by default, opt-in apply                 |
 | Favicon set               | `favicon generate`                      | `generate_favicons`        | Static PNG → PNG/ICO/traced vector SVG, size 16–256, default 64                   |
@@ -54,6 +55,8 @@ Project-based R2 uploads: `upload folders`, `upload config check`, `upload plan`
 Image/video processing also accepts `--ratio W:H` / MCP `options.ratio` for opt-in center cropping before bounded resizing, including selected folder media. Explicit width and height must match the ratio. Covers match the cropped video; defaults and manifest versions remain unchanged. See [aspect ratios](aspect-ratios.md).
 
 Image processing and compression accept explicit `--blur-fill` / MCP `options.padding: "blur"`. The complete source is centered over its blurred copy. The default ratio is `1:1` in this mode. Image processing delivers a lossless PNG by default. Image compression encodes the completed composite as WebP. See [aspect ratios](aspect-ratios.md#blurred-image-padding).
+
+Standalone video files support `--blur-fill` / MCP `options.padding: "blur"` with FFmpeg and FFprobe. Both modes deliver H.264 High MP4 with `yuv420p` for macOS preview. Fill-only processing uses CRF 18 / slow and a PNG cover. Compression mode uses the requested preset and a WebP cover. See [video padding](aspect-ratios.md#blurred-video-padding).
 
 CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
 

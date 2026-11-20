@@ -4,8 +4,11 @@ import {
   ImageOptionsSchema,
   FaviconSizeSchema,
   PosterOptionsSchema,
+  VideoFillOptionsSchema,
+  VideoOptionsSchema,
   validateAspectRatioOptions,
   validateImageProcessingOptions,
+  validateVideoOptions,
 } from "@file-forge/media";
 import {
   compressImages,
@@ -19,6 +22,7 @@ import {
   inspectFiles,
   OperationError,
   processImages,
+  processVideoFile,
   readManifest,
 } from "./index.js";
 const text = Schema.String.check(Schema.isMinLength(1));
@@ -48,7 +52,13 @@ export const ImageCompressionRequest = Schema.Struct({
 export const VideoCompressionRequest = Schema.Struct({
   operation: Schema.Literal("video-compress"),
   input: text,
-  options: CompressionOptionsSchema,
+  options: VideoOptionsSchema,
+  output: text,
+});
+export const VideoProcessRequest = Schema.Struct({
+  operation: Schema.Literal("video"),
+  input: text,
+  options: VideoFillOptionsSchema,
   output: text,
 });
 export const AudioCompressionRequest = Schema.Struct({
@@ -102,6 +112,7 @@ export const OperationRequest = Schema.Union([
   ModelPostersRequest,
   ImageCompressionRequest,
   VideoCompressionRequest,
+  VideoProcessRequest,
   FolderCompressionRequest,
   FolderRenameRequest,
   ImageRequest,
@@ -120,6 +131,10 @@ export const validateRequest = (input: unknown) =>
         case "image-compress":
           return validateImageProcessingOptions(request.options);
         case "video-compress":
+        case "video":
+          return validateVideoOptions(request.options, request.operation === "video").pipe(
+            Effect.asVoid,
+          );
         case "folder-compress":
           return validateAspectRatioOptions(request.options);
         default:
@@ -182,6 +197,8 @@ export const executeRequest = (input: unknown) =>
         return yield* compressFolder(request.input, request.options, request.output, request.media);
       case "video-compress":
         return yield* compressVideoFile(request.input, request.options, request.output);
+      case "video":
+        return yield* processVideoFile(request.input, request.options, request.output, true);
       case "inspect":
         return yield* inspectFiles(request.files, request.recursive);
       case "image":

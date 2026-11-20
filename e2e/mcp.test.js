@@ -169,6 +169,7 @@ test("plugin-backed MCP executes all local operations, scopes paths, deduplicate
       "list_bucket_folders",
       "plan_upload",
       "process_images",
+      "process_video",
       "rename_folders",
       "upload_files",
       "verify_upload",
@@ -716,7 +717,7 @@ test("MCP ratio schemas and shared validation support centered image/video/folde
       ["compress_folder", "folder-compress", { input: inputs, media: "all" }],
     ]) {
       const schema = listed.find((tool) => tool.name === name).inputSchema;
-      const supportsBlurFill = name === "process_images" || name === "compress_images";
+      const supportsBlurFill = name !== "compress_folder";
       assert.ok(JSON.stringify(schema.properties.options).includes('"ratio"'));
       assert.equal(
         JSON.stringify(schema.properties.options).includes('"padding"'),
@@ -761,7 +762,7 @@ test("MCP ratio schemas and shared validation support centered image/video/folde
       const settings = job.result.parameters[name === "compress_video" ? "video" : "image"];
       assert.equal(settings.ratio, "1:1");
       assert.equal(settings.crop, "center");
-      if (supportsBlurFill) {
+      if (name === "process_images" || name === "compress_images") {
         const fillId = `${name}-blur-fill`;
         const reply = decode(
           await call(client, name, {
@@ -812,6 +813,48 @@ test("MCP ratio schemas and shared validation support centered image/video/folde
           await readFile(job.result.assets[index].output),
         );
       }
+    }
+    for (const [name, operation, crf, coverFormat] of [
+      ["process_video", "video", 18, "png"],
+      ["compress_video", "video-compress", 23, "webp"],
+    ]) {
+      const requestId = `${name}-blur-fill`;
+      const reply = decode(
+        await call(client, name, {
+          operation,
+          requestId,
+          input: video,
+          output: join(root, "outputs"),
+          options: { padding: "blur" },
+        }),
+      );
+      assert.equal(reply.status, "running");
+      const filled = await terminal(client, requestId);
+      assert.equal(filled.status, "succeeded", JSON.stringify(filled));
+      const settings = filled.result.parameters.video;
+      assert.deepEqual(
+        [
+          settings.padding,
+          settings.ratio,
+          settings.encoding,
+          settings.profile,
+          settings.pixelFormat,
+          settings.crf,
+        ],
+        ["blur", "1:1", "lossy", "high", "yuv420p", crf],
+      );
+      assert.equal(settings.crop, undefined);
+      assert.deepEqual(
+        filled.result.assets.map((asset) => [
+          asset.outputWidth,
+          asset.outputHeight,
+          asset.outputFormat,
+        ]),
+        [
+          [120, 120, "mp4"],
+          [120, 120, coverFormat],
+        ],
+      );
     }
   } finally {
     if (client) await client.close();

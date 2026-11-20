@@ -1,6 +1,6 @@
-import { Effect, FileSystem, Path, Stream } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { FfmpegConfig, MediaError, runFfmpeg } from "./index.js";
+import { Effect, FileSystem, Path } from "effect";
+import { MediaError, runFfmpeg } from "./index.js";
+import { runFfprobe } from "./ffprobe.js";
 
 export const audioExtensions = new Set([
   ".wav",
@@ -28,89 +28,27 @@ export type LosslessResult = {
 const invalid = (detail: string) => new MediaError({ code: "INVALID_INPUT", detail });
 
 const probeAudio = (input: string) =>
-  Effect.scoped(
-    Effect.gen(function* () {
-      const config = yield* FfmpegConfig;
-      const path = yield* Path.Path;
-      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-      const executable =
-        config.probeExecutable ??
-        (path.isAbsolute(config.executable)
-          ? path.join(path.dirname(config.executable), "ffprobe")
-          : "ffprobe");
-      const child = yield* spawner.spawn(
-        ChildProcess.make(
-          executable,
-          [
-            "-v",
-            "error",
-            "-protocol_whitelist",
-            "file,pipe",
-            "-show_streams",
-            "-show_format",
-            "-show_chapters",
-            "-of",
-            "json",
-            input,
-          ],
-          {
-            shell: false,
-            stdin: "ignore",
-            stdout: "pipe",
-            stderr: "pipe",
-            killSignal: "SIGTERM",
-            forceKillAfter: "2 seconds",
-          },
-        ),
-      );
-      const [code, text] = yield* Effect.all(
-        [
-          child.exitCode,
-          child.stdout.pipe(
-            Stream.decodeText(),
-            Stream.runFold(
-              () => "",
-              (a, b) => (a + b).slice(-1024 * 1024),
-            ),
-          ),
-          child.stderr.pipe(Stream.runDrain),
-        ],
-        { concurrency: "unbounded" },
-      );
-      if (code !== 0) return yield* invalid("Cannot probe audio");
-      return yield* Effect.try({
-        try: () =>
-          JSON.parse(text) as {
-            streams: {
-              codec_type?: string;
-              codec_name?: string;
-              sample_rate?: string;
-              channels?: number;
-              channel_layout?: string;
-              bits_per_raw_sample?: string;
-              bits_per_sample?: number;
-              tags?: Record<string, string>;
-            }[];
-            chapters?: unknown[];
-            format?: { tags?: Record<string, string> };
-          },
-        catch: () => invalid("Invalid audio probe output"),
-      });
-    }),
-  ).pipe(
-    Effect.mapError((error) =>
-      error instanceof MediaError
-        ? error
-        : new MediaError({
-            code: "FFPROBE_FAILED",
-            detail: "FFprobe is unavailable or cannot run; configure FFPROBE_PATH",
-            cause: error,
-          }),
+  runFfprobe(input, ["-show_streams", "-show_format", "-show_chapters"]).pipe(
+    Effect.map(
+      (probe) =>
+        probe as {
+          streams: {
+            codec_type?: string;
+            codec_name?: string;
+            sample_rate?: string;
+            channels?: number;
+            channel_layout?: string;
+            bits_per_raw_sample?: string;
+            bits_per_sample?: number;
+            tags?: Record<string, string>;
+          }[];
+          chapters?: unknown[];
+          format?: { tags?: Record<string, string> };
+        },
     ),
-    Effect.timeoutOrElse({
-      duration: "30 seconds",
-      orElse: () => Effect.fail(invalid("Audio probe timed out")),
-    }),
+    Effect.mapError((error) =>
+      error.code === "INVALID_INPUT" ? invalid(error.detail.replace("media", "audio")) : error,
+    ),
   );
 
 /** No lossy transcode: only eligible integer PCM/FLAC is encoded; verify samples before publishing. */

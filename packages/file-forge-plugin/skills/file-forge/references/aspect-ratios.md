@@ -28,3 +28,13 @@ For fill alone, use `image process INPUT --blur-fill` or `process_images` with `
 For an explicit fill-and-compress request, use `image compress INPUT --blur-fill` or `compress_images` with `options.padding: "blur"`. These compose the canvas before encoding WebP. For explicitly requested compression in another format, use image processing with a quality or preset. With either route, pass the target ratio only when specified. It defaults to `1:1`. Use recursive image selection for directory inputs when requested.
 
 Sharp reads the oriented source dimensions, centers the full image without enlarging it, and fills the surrounding space with a blurred copy of the source. With no bounds, the canvas expands to fit the original. Width and height are maximum canvas bounds and must agree with the target when both are supplied. Check live help/schema for support and verify the output dimensions and the manifest’s `padding`, `format` and `encoding`.
+
+## Blurred video padding
+
+Only opt in when the current request explicitly asks for blur fill. For a ratio conversion alone, use the existing centered crop. This workflow takes one local video file and requires FFmpeg and FFprobe.
+
+- Fill alone: use `video process INPUT --blur-fill` or `process_video` with `operation: "video"` and `options.padding: "blur"`. Deliver the H.264 High / `yuv420p` MP4 (CRF 18 / slow) and the PNG cover. The video is encoded once for macOS preview. The first audio stream is copied if present, unless the user requests `audio: "remove"`.
+- Fill and compress: use `video compress INPUT --blur-fill` or `compress_video` with `options.padding: "blur"` when the user asks for the compression workflow. FFmpeg composes each frame before H.264 High / `yuv420p` encoding with the selected preset. Deliver the MP4 and WebP cover. The first audio stream is encoded as AAC unless removed.
+- Pass the requested ratio if specified. Otherwise the canvas is square. Keep the full oriented frame centered and fill around it with a blur derived from that frame. Dimensions are optional canvas bounds. Both routes use the same even canvas sizing. Report decoded dimensions and confirm `parameters.video.padding: "blur"` and the requested encoding.
+
+For supported SDR sources, the cover is extracted from the first frame after finishing the MP4. It is converted to sRGB and tagged with an sRGB ICC profile to match the video’s color settings.

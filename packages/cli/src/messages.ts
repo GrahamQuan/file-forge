@@ -93,7 +93,8 @@ Usage:
   file-forge audio compress <input> [--output DIR] [--json]
   file-forge model compress <input.glb> [--output DIR] [--json]
   file-forge model posters <input.glb> [--ratio W:H] [--width N] [--height N] [--output DIR] [--json]
-  file-forge video compress <input> [--audio keep|remove] [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge video process <input> --blur-fill [--audio keep|remove] [--ratio W:H] [--width N] [--height N] [--output DIR] [--json]
+  file-forge video compress <input> [--blur-fill] [--audio keep|remove] [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
@@ -104,6 +105,7 @@ Global options: --language en|zh-CN, --help
 Favicons: static PNG to ICO, PNG, and traced vector SVG; size 16–256 (default 64), transparent padding, no enlargement. Tracing can alter colors, edges, and partial transparency.
 Images preserve aspect ratio without enlargement. Supply at least one image process option.
 Image --blur-fill keeps the full image centered and fills the surrounding canvas with a blurred copy. The ratio defaults to 1:1 in this mode. Width and height are optional canvas bounds. Image process defaults to lossless PNG; an explicit WebP or AVIF format is also lossless unless quality or preset is supplied. JPEG requires quality or preset. Image compress encodes the filled result as WebP.
+Video --blur-fill accepts one local file and uses FFmpeg and FFprobe. Both video modes encode H.264 High MP4 with yuv420p for macOS preview. Video process uses CRF 18/slow, copies the first audio stream when present, and writes a PNG cover. Video compress uses the selected compression preset and writes a WebP cover. The target ratio defaults to 1:1.
 Image/video --ratio W:H on its own opts into center cropping before resizing (also selected folder media). Use positive decimal components, for example 1:1 or 16:9. Explicit width and height must match ratio. No padding or enlargement; pixel rounding can slightly alter ratio, and video dimensions round down to even pixels. Covers follow the cropped video.
 Without --ratio, compression preserves original dimensions when no size is supplied; supply width or height alone for an automatic other axis. Folder compression preserves nested structure with normalized names. Images become WebP; videos become MP4 with a first-frame WebP cover. Explicitly resized video dimensions round down to even pixels; quality controls the cover.
 Output: a new task directory under Downloads or --output. Sources and existing outputs are preserved by media workflows. Folder rename previews by default; --apply renames original directories from an explicit JSON plan.
@@ -196,7 +198,8 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. General composition commands, speci
   file-forge audio compress <input> [--output DIR] [--json]
   file-forge model compress <input.glb> [--output DIR] [--json]
   file-forge model posters <input.glb> [--ratio W:H] [--width N] [--height N] [--output DIR] [--json]
-  file-forge video compress <input> [--audio keep|remove] [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
+  file-forge video process <input> --blur-fill [--audio keep|remove] [--ratio W:H] [--width N] [--height N] [--output DIR] [--json]
+  file-forge video compress <input> [--blur-fill] [--audio keep|remove] [--ratio W:H] [--width N] [--height N] [--quality 80] [--output DIR] [--json]
   file-forge manifest export [files...] [--manifest FILE] [--output DIR] [--recursive] [--include-paths] [--json]
   file-forge config get language [--json]
   file-forge config set language en|zh-CN [--json]
@@ -207,6 +210,7 @@ MCP uses STDIO and requires FILE_FORGE_ROOT. General composition commands, speci
 网站图标：静态 PNG 转 ICO、PNG 和描摹矢量 SVG；尺寸 16–256（默认 64），透明填充，不放大。描摹可能改变颜色、边缘和半透明效果。
 图片保持宽高比，默认不放大。image process 必须提供至少一个图片选项。
 图片 --blur-fill 保留完整原图并居中，用原图的模糊副本填满周围画布。此模式默认 1:1，宽高为可选的画布上限。image process 默认输出无损 PNG；只指定 WebP 或 AVIF 格式也使用无损编码。指定质量或预设可启用有损编码，JPEG 必须指定其中之一。image compress 先填充，再将成图编码为 WebP。
+视频 --blur-fill 接收单个本地视频文件，需要 FFmpeg 和 FFprobe。两种视频模式均编码为支持 macOS 预览的 H.264 High MP4（yuv420p）。video process 使用 CRF 18/slow，默认复制第一条音轨，输出 PNG 封面。video compress 先填充，再按所选压缩预设编码，并输出 WebP 封面。目标比例默认 1:1。
 图片/视频仅指定 --ratio W:H 时在缩放前居中裁剪（也适用于文件夹中选中的媒体）。比例两边须为正十进制数，如 1:1 或 16:9。同时指定宽高时必须与比例一致。不填充、不放大；像素取整可能使比例略有偏差，视频尺寸向下取偶数。封面跟随裁剪后的视频。
 未指定 --ratio 和尺寸时压缩保留原始宽高并跳过缩放；仅指定宽或高时自动保持比例。文件夹压缩保留层级并规范名称。图片输出 WebP；视频输出 MP4 及同尺寸的首帧 WebP 封面。指定缩放的视频尺寸向下取偶数；quality 控制封面质量。
 产物保存在 Downloads 或 --output 下的新任务目录中。媒体处理保留源文件和现有产物。folder rename 默认预览；--apply 按明确的 JSON 计划重命名原目录。

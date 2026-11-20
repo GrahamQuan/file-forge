@@ -121,6 +121,8 @@ GLB 压缩会通过标准图片流程自动生成六张默认 16:9 海报。模�
 
 只做模糊填充时，使用 `image process photo.png --blur-fill --ratio 4:3`，默认输出无损 PNG。明确需要压缩时，换用 `image compress` 并保留相同选项，先填充，再将成图编码为 WebP。MCP 使用 `options.padding: "blur"`。此模式默认输出 `1:1`，用原图的模糊副本衬在完整图像后面。只指定比例时仍使用居中裁剪。
 
+本地视频可使用 `video process clip.mp4 --blur-fill`，输出 H.264 High MP4（`yuv420p`，CRF 18 / slow）和 PNG 封面。使用 `video compress clip.mp4 --blur-fill` 可在填充后应用所选压缩预设。两种模式均采用兼容 macOS 预览的视频规格。目标比例默认 `1:1`，可用 `--ratio W:H` 自选。MCP 对应 `process_video` 或 `compress_video` 的 `options.padding: "blur"`。两种模式都需要 FFmpeg 和 FFprobe。
+
 CLI 上传进度在 stderr 显示每个文件及按字节加权的总百分比（包括 `--json` 模式）。100% 表示数据已交给 HTTP 传输层，并不代表 R2 已确认。只有收到 R2 成功响应才报告上传成功；公开 URL 检查单独显示，失败时整体结果仍可能为部分完成。
 
 使用 `upload apply --progress table` 显示进度表格，或使用 `--progress lines` 显示普通文本行。默认 `auto` 在合适的终端中显示实时表格。R2 确认和公开 URL 状态分列显示；进度仍输出到 stderr。

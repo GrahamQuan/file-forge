@@ -6,3 +6,5 @@ Video audio is kept by default: the first audio stream, when present, is encoded
 file-forge video compress clip.mp4 --audio remove --json
 file-forge folder compress ./assets --media videos --width 512 --audio remove --json
 ```
+
+Fill-only `video process --blur-fill` copies the first audio stream into MP4 instead of encoding AAC. `--audio remove` omits it. With `video compress --blur-fill`, the ordinary AAC policy applies after filling. See [blurred video padding](aspect-ratios.md#blurred-video-padding).

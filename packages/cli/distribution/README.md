@@ -70,6 +70,8 @@ Image/video operations support `--ratio W:H` / MCP `options.ratio` for centered 
 
 For blurred fill alone, use `image process photo.png --blur-fill --ratio 4:3` for a lossless PNG. Use `image compress` with the same options to compress the finished composite as WebP. MCP uses `options.padding: "blur"`. The canvas defaults to `1:1` in this mode and uses a blurred copy of the source behind the complete image. A ratio alone uses centered cropping.
 
+For blurred padding on a local video, use `video process clip.mp4 --blur-fill` for an H.264 High MP4 with `yuv420p`, CRF 18 / slow and a PNG cover. Use `video compress clip.mp4 --blur-fill` to apply the selected compression preset after filling. Both modes use a macOS-preview-compatible video profile. The target defaults to `1:1`; pass another ratio with `--ratio W:H`. MCP uses `options.padding: "blur"` with `process_video` or `compress_video`. Both require FFmpeg and FFprobe.
+
 CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
 
 Use `upload apply --progress table` for a progress table, or `--progress lines` for plain lines. The default `auto` selects a live table in suitable terminals. R2 confirmation and public URL status have separate columns; progress stays on stderr.

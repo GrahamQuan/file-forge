@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize, crop, add blurred padding, or convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Also supports explicitly approved project-based R2 uploads. Does not generate new artwork.
+description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize, crop or convert image batches, add blurred padding to images and video files, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Also supports explicitly approved project-based R2 uploads. Does not generate new artwork.
 ---
 
 # FileForge
@@ -43,6 +43,8 @@ user calls the general image workflow. Use `process_images` for fill alone or ge
 
 ### Videos (FFmpeg)
 
+Use blurred padding only when explicitly requested for a local video. For fill alone, submit `process_video` with `operation: "video"` and `options.padding: "blur"`. The CLI equivalent is `video process INPUT --blur-fill`. It encodes H.264 High / `yuv420p` MP4 at CRF 18 / slow for macOS preview, writes a PNG cover, and copies the first audio stream if present. If the user also requests compression, submit `compress_video` with the same padding option, or use `video compress INPUT --blur-fill`. This fills before encoding the same preview-compatible MP4 profile with the selected compression preset and a WebP cover. For SDR video, both routes extract the first frame from the finalized MP4 and deliver an sRGB-tagged cover. Both need FFprobe and default to a square canvas. Pass `options.ratio` for another ratio and `options.audio: "remove"` only when requested. A ratio alone uses centered cropping.
+
 1. Establish the reduced dimensions first.
 2. If the user needs animated copy, use a local Hyperframes project at those dimensions.
    Reuse an existing local installation, or install `hyperframes` locally in the task's motion
@@ -66,8 +68,8 @@ and close temporary browser resources when finished; preserve user-owned resourc
 
 - Use user-authorized paths within the configured workspace. Require an explicit output parent for writes.
 - Select `compress_images` or `compress_video` for the compression workflow above.
-  Other operations use `inspect_files`, `process_images`, `generate_favicons`, or `export_manifest`.
-  Supply a unique `requestId` and the tool's `operation` literal (`inspect`, `image`, `favicon`, or `export`).
+  Other operations use `inspect_files`, `process_images`, `process_video`, `generate_favicons`, or `export_manifest`.
+  Supply a unique `requestId` and the tool's `operation` literal (`inspect`, `image`, `video`, `favicon`, or `export`).
 - Inspection takes `files` and optional `recursive`. Image processing adds `options` with explicit width,
   height, ratio, padding, quality (1–100), and/or format (`webp`, `jpeg`, `png`, `avif`), plus `output`.
 - Favicons take `input` (static PNG), `output`, and optional `size` (16–256, default 64).

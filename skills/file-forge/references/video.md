@@ -23,6 +23,10 @@ Without ratio, no width/height skips the scale filter. Explicit bounds preserve 
 
 Return both video and cover. Validate actual encoded dimensions and byte sizes; covers are additional delivery files, not part of the main-video savings figure. With FFprobe available, use `-v error -show_entries stream=width,height,sample_aspect_ratio:format=size,duration -of json` on the selected output.
 
+## Blurred video padding
+
+Follow [blurred video padding](aspect-ratios.md#blurred-video-padding) when the user explicitly requests it. Use `video process --blur-fill` for an H.264 High / `yuv420p` MP4 (CRF 18 / slow) for macOS preview and a PNG cover. Use `video compress --blur-fill` when the user requests a compression preset after filling. FFprobe is required for both.
+
 ## HyperFrames and other motion work
 
 HyperFrames is an external authoring/rendering workflow, not a built-in FileForge command. Do not install it for ordinary compression. If the user requests animated text/composition, inspect an available local HyperFrames project and its actual CLI documentation. Resolve content/timing from user instructions. Render externally when authorized, then pass the resulting video to FileForge and label each step accurately. Do not invent `file-forge hyperframes` or other unimplemented commands.
@@ -33,7 +37,7 @@ For requested operations beyond these presets, select [custom processing](custom
 
 Use the opt-in `--preset clarity` / MCP `options.preset: "clarity"` when the user prioritizes detail while still compressing. It uses image/cover quality 90 (WebP effort 6, smartSubsample enabled) and video CRF 18 / slow. Omission keeps quality 80 and CRF 23 / medium. Explicit quality overrides images/covers only. No automatic resizing or sharpening. This is lossy and may be slower/larger; never promise a quality threshold or the smallest possible output. Audio/model optimization and automatic GLB posters keep their existing policies. Check installed support before using the flag.
 
-Video audio is kept by default: the first audio stream, when present, is encoded as AAC at 128 kb/s (not byte-for-byte passthrough or preservation of every track). Use `--audio remove` / MCP `options.audio: "remove"` to omit all audio streams; `--audio keep` explicitly restores the default. Supported by video and folder compression; image-only commands reject it. Folder selection applies first: only selected videos lose audio, excluded files and standalone audio/music files retain their existing behavior. Silent input is valid in either mode. Covers, video dimensions and compression presets are unchanged. Manifests record `parameters.video.audio`. Remember an explicit choice only within this chat, and pass it on compatible later requests; new chats default to keep.
+Video compression keeps audio by default: the first audio stream, when present, is encoded as AAC at 128 kb/s (not byte-for-byte passthrough or preservation of every track). Use `--audio remove` / MCP `options.audio: "remove"` to omit all audio streams; `--audio keep` explicitly restores the default. Supported by video and folder compression; image-only commands reject it. Folder selection applies first: only selected videos lose audio, excluded files and standalone audio/music files retain their existing behavior. Silent input is valid in either mode. Covers, video dimensions and compression presets are unchanged. Manifests record `parameters.video.audio`. Remember an explicit choice only within this chat, and pass it on compatible later requests; new chats default to keep.
 
 ```sh
 file-forge video compress clip.mp4 --audio remove --json

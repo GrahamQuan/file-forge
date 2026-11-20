@@ -60,6 +60,15 @@ file-forge video compress "$HOME/Downloads/clip.mp4" \
 
 The result includes an H.264 MP4, optional AAC audio, and a first-frame WebP cover matching the encoded dimensions. Width and height are maximum bounds, aspect ratio is preserved, and explicitly resized output dimensions are rounded down to even pixels. Without requested dimensions or ratio, resizing is skipped; incompatible original H.264 dimensions fail rather than silently change. `--quality` controls the cover image, not video CRF; the current compression workflow uses CRF 23.
 
+### Add blurred video padding
+
+```sh
+file-forge video process clip.mp4 --blur-fill --json
+file-forge video compress clip.mp4 --blur-fill --ratio 4:3 --json
+```
+
+Both commands fill before encoding an H.264 High MP4 with `yuv420p` for macOS preview. The first uses CRF 18 / slow and produces a PNG cover. The second applies the selected compression preset and produces a WebP cover. Both workflows use FFmpeg and FFprobe with one local file. See [video padding](aspect-ratios.md#blurred-video-padding).
+
 ### A requested width with automatic height
 
 Omit the other axis; FileForge preserves the original aspect ratio automatically:

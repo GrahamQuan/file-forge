@@ -22,6 +22,7 @@ import {
   ModelCompressionRequest,
   ModelPostersRequest,
   VideoCompressionRequest,
+  VideoProcessRequest,
   FolderCompressionRequest,
   FolderRenameRequest,
   InspectRequest,
@@ -105,9 +106,16 @@ const tools = Toolkit.make(
     success,
     failure,
   }).annotate(Tool.Strict, true),
+  Tool.make("process_video", {
+    description:
+      'Blur-fill one local video. Requires options.padding: "blur"; ratio defaults to 1:1. Keeps the full foreground over a blurred copy of each frame. Delivers H.264 High MP4 with yuv420p for macOS preview (CRF 18/slow) and a PNG cover. Copies the first audio stream unless options.audio is remove. Requires FFmpeg and FFprobe. Poll job_status.',
+    parameters: submission(VideoProcessRequest.fields),
+    success,
+    failure,
+  }).annotate(Tool.Strict, true),
   Tool.make("compress_video", {
     description:
-      "Optional preset clarity uses CRF 18/slow and cover quality 90; standard uses CRF 23/medium. options.audio defaults to keep (first audio track encoded to AAC); remove omits all audio. Resize and compress one video to MP4 and create a first-frame WebP cover matching the resulting video dimensions. Optional options.ratio W:H center-crops before resizing without enlargement; explicit width and height must match ratio. Without ratio, omitted axes preserve source aspect; no size preserves original dimensions. Poll job_status.",
+      'Optional preset clarity uses CRF 18/slow and cover quality 90; standard uses CRF 23/medium. options.audio defaults to keep (first audio track encoded to AAC); remove omits all audio. Compresses one local video to MP4 with a matching first-frame WebP cover. Set options.padding to "blur" only when the user explicitly asks for blur fill and compression; composes before encoding H.264 High with yuv420p for macOS preview, defaults to 1:1, and requires FFprobe. Ratio alone center-crops; explicit width and height must match the target ratio. Poll job_status.',
     parameters: submission(VideoCompressionRequest.fields),
     success,
     failure,
@@ -364,6 +372,7 @@ const handlers = (root: string, privateConfig: string) =>
         inspect_files: submit,
         process_images: submit,
         compress_images: submit,
+        process_video: submit,
         compress_video: submit,
         compress_folder: submit,
         compress_audio: submit,

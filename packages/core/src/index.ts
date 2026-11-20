@@ -2,7 +2,7 @@ import { lstat } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { Cause, Data, Effect, Exit, FileSystem, Option, Path, Schema } from "effect";
 import {
-  compressVideo,
+  processVideo,
   imageOutputSettings,
   imageQuality,
   videoEncoding,
@@ -13,7 +13,9 @@ import {
   inspectImage,
   processImage,
   validateImageOptions,
+  validateVideoOptions,
   type ImageOptions,
+  type VideoOptions,
 } from "@file-forge/media";
 
 export class OperationError extends Data.TaggedError("OperationError")<{
@@ -557,6 +559,7 @@ export {
   ImageRequest,
   ImageCompressionRequest,
   VideoCompressionRequest,
+  VideoProcessRequest,
   AudioCompressionRequest,
   ModelCompressionRequest,
   ModelPostersRequest,
@@ -590,18 +593,14 @@ export const compressImages = (
     ),
   );
 
-export const compressVideoFile = (
+export const processVideoFile = (
   input: string,
-  options: CompressionOptions,
+  options: VideoOptions,
   outputParent: string,
+  fillOnly: boolean,
 ) =>
   Effect.gen(function* () {
-    const validated = yield* validateCompressionOptions(options);
-    if (
-      (validated.width !== undefined && validated.width < 2) ||
-      (validated.height !== undefined && validated.height < 2)
-    )
-      return yield* invalid("Video dimensions must be at least 2 pixels");
+    const validated = yield* validateVideoOptions(options, fillOnly);
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     if (yield* isSymlink(input)) return yield* invalid("Video input must be a regular file");
@@ -619,13 +618,23 @@ export const compressVideoFile = (
       parameters: {
         recursive: false,
         video: {
-          ...(validated.ratio === undefined ? {} : { crop: "center" }),
+          ...(validated.ratio !== undefined && validated.padding === undefined
+            ? { crop: "center" }
+            : {}),
           ...Object.fromEntries(
             Object.entries(validated).filter(([, value]) => value !== undefined),
           ),
           audio: validated.audio ?? "keep",
-          coverQuality: imageQuality(validated),
-          ...videoEncoding(validated),
+          ...(validated.padding === "blur"
+            ? {
+                encoding: "lossy",
+                codec: "h264",
+                profile: "high",
+                pixelFormat: "yuv420p",
+              }
+            : {}),
+          ...videoEncoding(validated, fillOnly),
+          ...(fillOnly ? {} : { coverQuality: imageQuality(validated) }),
         },
       },
       assets: [
@@ -639,7 +648,7 @@ export const compressVideoFile = (
       ],
     };
     return yield* Effect.gen(function* () {
-      const result = yield* compressVideo(source, directory, validated);
+      const result = yield* processVideo(source, directory, validated, fillOnly);
       const assets: Asset[] = [
         {
           assetId: hash(source),
@@ -651,7 +660,7 @@ export const compressVideoFile = (
           outputWidth: result.width,
           outputHeight: result.height,
           outputSize: result.size,
-          outputFormat: "mp4",
+          outputFormat: result.format,
         },
         {
           assetId: hash(source + ":cover"),
@@ -663,10 +672,27 @@ export const compressVideoFile = (
           outputWidth: result.width,
           outputHeight: result.height,
           outputSize: result.coverSize,
-          outputFormat: "webp",
+          outputFormat: result.coverFormat,
         },
       ];
-      const completed: Manifest = { ...manifest, status: "succeeded", assets };
+      const completed: Manifest = {
+        ...manifest,
+        status: "succeeded",
+        ...(result.colorManaged
+          ? {
+              parameters: {
+                ...manifest.parameters,
+                video: {
+                  ...manifest.parameters.video,
+                  colorSpace: "bt709",
+                  colorTransfer: "srgb",
+                  coverColorSpace: "srgb",
+                },
+              },
+            }
+          : {}),
+        assets,
+      };
       yield* writeManifest(directory, completed);
       return { ...completed, directory };
     }).pipe(
@@ -680,6 +706,9 @@ export const compressVideoFile = (
       ),
     );
   });
+
+export const compressVideoFile = (input: string, options: VideoOptions, outputParent: string) =>
+  processVideoFile(input, options, outputParent, false);
 
 export { compressLosslessFile } from "./lossless.js";
 

@@ -1,6 +1,7 @@
 import { Context, Data, Effect, FileSystem, Layer, Path, Schema, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import sharp, { type Metadata, type OutputInfo, type Sharp } from "sharp";
+import { videoBlurPaddingFilter } from "./video-padding.js";
 
 export class MediaError extends Data.TaggedError("MediaError")<{
   readonly code:
@@ -75,8 +76,8 @@ export const validateImageProcessingOptions = (options: ImageOptions) =>
   });
 export const imageQuality = (options: ImageOptions) =>
   options.quality ?? (options.preset === "clarity" ? 90 : 80);
-export const videoEncoding = (options: { preset?: "standard" | "clarity" }) =>
-  options.preset === "clarity"
+export const videoEncoding = (options: { preset?: "standard" | "clarity" }, fillOnly = false) =>
+  fillOnly || options.preset === "clarity"
     ? { crf: 18, encoderPreset: "slow" as const }
     : { crf: 23, encoderPreset: "medium" as const };
 export const validateImageOptions = (value: unknown) =>
@@ -93,7 +94,7 @@ export const validateImageOptions = (value: unknown) =>
   );
 
 // Internal workflow policy; CLI/MCP image options retain their existing defaults.
-export type ImageEncodingPolicy = "standard" | "lossless-webp";
+export type ImageEncodingPolicy = "standard" | "lossless-webp" | "lossless-png";
 
 export class ImageEngine extends Context.Service<
   ImageEngine,
@@ -104,6 +105,7 @@ export class ImageEngine extends Context.Service<
       output: string,
       options: ImageOptions,
       encoding?: ImageEncodingPolicy,
+      profile?: "srgb",
     ) => Effect.Effect<OutputInfo, MediaError>;
   }
 >()("@file-forge/media/ImageEngine") {}
@@ -160,7 +162,7 @@ const makeBlurFilledImage = async (source: Sharp, options: ImageOptions) => {
 
 export const ImageEngineLive = Layer.succeed(ImageEngine, {
   inspect: (input) => sharpEffect(() => sharp(input).metadata()),
-  process: (input, output, options, encoding = "standard") =>
+  process: (input, output, options, encoding = "standard", profile) =>
     sharpEffect(async () => {
       let image = sharp(input).rotate();
       if (options.padding === "blur") {
@@ -191,8 +193,10 @@ export const ImageEngineLive = Layer.succeed(ImageEngine, {
           withoutEnlargement: true,
         });
       }
+      if (profile !== undefined) image = image.withIccProfile(profile);
       if (encoding === "lossless-webp")
         return image.webp({ lossless: true, effort: 6 }).toFile(output);
+      if (encoding === "lossless-png") return image.png().toFile(output);
       const { format, lossless } = imageOutputSettings(options);
       if (lossless) {
         if (format === "webp") return image.webp({ lossless: true }).toFile(output);
@@ -213,17 +217,18 @@ export const processImage = (
   output: string,
   options: ImageOptions = {},
   encoding: ImageEncodingPolicy = "standard",
+  profile?: "srgb",
 ) =>
   Effect.gen(function* () {
     const validated = yield* validateImageOptions(options);
     if (
-      encoding === "lossless-webp" &&
+      encoding !== "standard" &&
       (validated.quality !== undefined ||
-        (validated.format !== undefined && validated.format !== "webp"))
+        (validated.format !== undefined && encoding !== `lossless-${validated.format}`))
     )
       return yield* new MediaError({
         code: "INVALID_INPUT",
-        detail: "Lossless WebP processing cannot use a different format or lossy quality setting",
+        detail: "Lossless image processing cannot use a different format or lossy quality setting",
       });
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -246,7 +251,7 @@ export const processImage = (
         });
         const temporary = path.join(staging, "image");
         const engine = yield* ImageEngine;
-        const result = yield* engine.process(source, temporary, validated, encoding);
+        const result = yield* engine.process(source, temporary, validated, encoding, profile);
         yield* engine.inspect(temporary);
         yield* fs.link(temporary, destination);
         return result;
@@ -365,33 +370,76 @@ export const validateCompressionOptions = (input: unknown) =>
     Effect.tap(validateAspectRatioOptions),
   );
 
+export const VideoOptionsSchema = Schema.Struct({
+  ...CompressionOptionsSchema.fields,
+  padding: ImageOptionsSchema.fields.padding,
+});
+export const VideoFillOptionsSchema = Schema.Struct({
+  padding: Schema.Literal("blur"),
+  audio: CompressionOptionsSchema.fields.audio,
+  width: CompressionOptionsSchema.fields.width,
+  height: CompressionOptionsSchema.fields.height,
+  ratio: CompressionOptionsSchema.fields.ratio,
+});
+export type VideoOptions = typeof VideoOptionsSchema.Type;
+export const validateVideoOptions = (input: unknown, fillOnly = false) =>
+  Effect.gen(function* () {
+    const options = yield* Schema.decodeUnknownEffect(VideoOptionsSchema)(input).pipe(
+      Effect.mapError(
+        () => new MediaError({ code: "INVALID_INPUT", detail: "Invalid video options" }),
+      ),
+    );
+    if (
+      fillOnly &&
+      (options.padding !== "blur" || options.preset !== undefined || options.quality !== undefined)
+    )
+      return yield* new MediaError({
+        code: "INVALID_INPUT",
+        detail: "Video process requires blur fill and uses fixed encoding settings",
+      });
+    if (
+      (options.width !== undefined && options.width < 2) ||
+      (options.height !== undefined && options.height < 2)
+    )
+      return yield* new MediaError({
+        code: "INVALID_INPUT",
+        detail: "Video dimensions must be at least 2 pixels",
+      });
+    const ratio = options.ratio ?? (options.padding === "blur" ? defaultBlurFillRatio : undefined);
+    yield* validateAspectRatioOptions({ ...options, ratio });
+    return { ...options, ratio };
+  });
+
 /** Resize and encode, then pass the first decoded output frame through the Sharp pipeline. */
-export const compressVideo = (input: string, directory: string, options: CompressionOptions) =>
+export const processVideo = (
+  input: string,
+  directory: string,
+  options: VideoOptions,
+  fillOnly: boolean,
+) =>
   Effect.scoped(
     Effect.gen(function* () {
-      const validated = yield* validateCompressionOptions(options);
-      if (
-        (validated.width !== undefined && validated.width < 2) ||
-        (validated.height !== undefined && validated.height < 2)
-      )
-        return yield* new MediaError({
-          code: "INVALID_INPUT",
-          detail: "Video dimensions must be at least 2 pixels",
-        });
-      const encoding = videoEncoding(validated);
+      const validated = yield* validateVideoOptions(options, fillOnly);
+      const encoding = videoEncoding(validated, fillOnly);
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const source = yield* fs.realPath(input);
       const staging = yield* fs.makeTempDirectoryScoped({ directory, prefix: ".video-" });
-      const temporary = path.join(staging, "video.mp4");
+      const format = "mp4";
+      const coverFormat = fillOnly ? "png" : "webp";
+      const temporary = path.join(staging, `video.${format}`);
       const frame = path.join(staging, "frame.png");
-      const cover = path.join(staging, "cover.webp");
+      const cover = path.join(staging, `cover.${coverFormat}`);
       // Keep aspect ratio, never enlarge, and round down to even H.264 dimensions.
       const ratio = `min(1,min(${validated.width === undefined ? "1" : `${validated.width}/(iw*sar)`},${validated.height === undefined ? "1" : `${validated.height}/ih`}))`;
       const scale = `scale=w='trunc(iw*sar*${ratio}/2)*2':h='trunc(ih*${ratio}/2)*2',setsar=1`;
       let filter =
         validated.width !== undefined || validated.height !== undefined ? scale : undefined;
-      if (validated.ratio !== undefined) {
+      const padding =
+        validated.padding === "blur" && validated.ratio !== undefined
+          ? yield* videoBlurPaddingFilter(source, ratioValue(validated.ratio).aspect, validated)
+          : undefined;
+      if (padding === undefined && validated.ratio !== undefined) {
         const aspect = ratioValue(validated.ratio).aspect;
         const crop = `crop=w='floor(min(iw,ih*${aspect}/sar)+1e-9)':h='floor(min(ih,iw*sar/${aspect})+1e-9)':x='floor((iw-ow)/2)':y='floor((ih-oh)/2)':exact=1`;
         // Normalize non-square pixels by reducing an axis, never by enlarging it.
@@ -403,38 +451,86 @@ export const compressVideo = (input: string, directory: string, options: Compres
       }
       yield* runFfmpeg([
         "-n",
+        ...(padding === undefined ? [] : ["-protocol_whitelist", "file,pipe"]),
         "-i",
         source,
+        ...(padding === undefined ? [] : ["-filter_complex", padding.graph]),
         "-map",
-        "0:v:0",
+        padding === undefined ? "0:v:0" : "[v]",
         ...(validated.audio === "remove" ? [] : ["-map", "0:a:0?"]),
-        ...(filter === undefined ? [] : ["-vf", filter]),
+        ...(padding !== undefined
+          ? ["-fps_mode", "passthrough"]
+          : filter === undefined
+            ? []
+            : ["-vf", filter]),
         "-c:v",
         "libx264",
+        ...(padding === undefined ? [] : ["-profile:v", "high"]),
         "-crf",
         String(encoding.crf),
         "-preset",
         encoding.encoderPreset,
         "-pix_fmt",
         "yuv420p",
-        ...(validated.audio === "remove" ? ["-an"] : ["-c:a", "aac", "-b:a", "128k"]),
+        ...(padding?.colorManaged
+          ? [
+              "-color_primaries",
+              "bt709",
+              "-colorspace",
+              "bt709",
+              "-color_trc",
+              "iec61966-2-1",
+              "-color_range",
+              "tv",
+            ]
+          : []),
+        ...(validated.audio === "remove"
+          ? ["-an"]
+          : fillOnly
+            ? ["-c:a", "copy"]
+            : ["-c:a", "aac", "-b:a", "128k"]),
         "-movflags",
         "+faststart",
         temporary,
       ]);
-      yield* runFfmpeg(["-n", "-i", temporary, "-map", "0:v:0", "-frames:v", "1", frame]);
-      const result = yield* processImage(frame, cover, {
-        quality: validated.quality,
-        preset: validated.preset,
-        format: "webp",
-      });
-      const output = path.join(directory, "video.mp4");
-      const coverOutput = path.join(directory, "video.webp");
+      // The video encoder and MP4 muxer have exited. Decode the cover from that final file.
+      yield* runFfmpeg([
+        "-n",
+        "-i",
+        temporary,
+        "-map",
+        "0:v:0",
+        "-frames:v",
+        "1",
+        ...(padding?.colorManaged
+          ? [
+              "-vf",
+              "colorspace=all=bt709:trc=iec61966-2-1:range=pc:format=yuv444p,scale=in_color_matrix=bt709:in_range=full:out_range=full,format=rgb24",
+            ]
+          : []),
+        frame,
+      ]);
+      const result = yield* processImage(
+        frame,
+        cover,
+        {
+          quality: validated.quality,
+          preset: validated.preset,
+          format: coverFormat,
+        },
+        fillOnly ? "lossless-png" : "standard",
+        padding?.colorManaged ? "srgb" : undefined,
+      );
+      const output = path.join(directory, `video.${format}`);
+      const coverOutput = path.join(directory, `video.${coverFormat}`);
       yield* fs.link(temporary, output);
       yield* fs.link(cover, coverOutput);
       return {
         output,
         cover: coverOutput,
+        format,
+        coverFormat,
+        colorManaged: padding?.colorManaged ?? false,
         width: result.width,
         height: result.height,
         size: Number((yield* fs.stat(output)).size),
@@ -442,6 +538,8 @@ export const compressVideo = (input: string, directory: string, options: Compres
       };
     }),
   );
+export const compressVideo = (input: string, directory: string, options: VideoOptions) =>
+  processVideo(input, directory, options, false);
 
 export { compressAudio, compressGlb, audioExtensions, type LosslessResult } from "./lossless.js";
 

@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Set up FileForge and its Codex plugin, check media-tool prerequisites, and use FileForge to inspect, compress, resize, crop or convert local images, videos and folders, fill image borders with a blurred copy of the source, losslessly optimize audio/music and GLB models, render six-angle GLB posters, rename explicitly selected source folders, generate favicons, export delivery manifests, and perform explicitly approved project-based R2 uploads. Use for FileForge installation, upgrades, troubleshooting, and local media requests, including custom Sharp/FFmpeg processing beyond built-in workflows.
+description: Set up FileForge and its Codex plugin, check media-tool prerequisites, and use FileForge to inspect, compress, resize, crop or convert local images, videos and folders, add blurred padding to images and video files, losslessly optimize audio/music and GLB models, render six-angle GLB posters, rename explicitly selected source folders, generate favicons, export delivery manifests, and perform explicitly approved project-based R2 uploads. Use for FileForge installation, upgrades, troubleshooting, and local media requests, including custom Sharp/FFmpeg processing beyond built-in workflows.
 ---
 
 # FileForge
@@ -53,7 +53,7 @@ Example: “I found two folders named assets. Which should I process: the projec
 | Install/enable Codex plugin; tools are missing           | [Codex plugin](references/codex-plugin.md)                                                                                | Local marketplace and connection checks        |
 | Inspect metadata without processing                      | [Images](references/images.md)                                                                                            | `inspect_files` / `inspect`                    |
 | Compress, resize, pad, crop or convert images            | [Images](references/images.md)                                                                                            | `compress_images` or `process_images`          |
-| Compress video; create first-frame cover                 | [Video](references/video.md)                                                                                              | `compress_video`                               |
+| Compress or blur-fill video; create first-frame cover    | [Video](references/video.md)                                                                                              | `compress_video` or `process_video`            |
 | Process an entire directory into a new delivery folder   | [Folders](references/folders.md)                                                                                          | `compress_folder`                              |
 | Rename original root/subfolders as requested             | [Source-folder renaming](references/source-folder-renaming.md)                                                            | `rename_folders` / `folder rename`             |
 | Generate ICO/PNG/traced-SVG favicon set                  | [Favicons and manifests](references/favicons-manifests.md)                                                                | `generate_favicons`                            |
@@ -66,7 +66,7 @@ For audio/music compression, read [audio and music](references/audio.md) and use
 
 ## Shared behavior
 
-- Use [blurred image padding](references/aspect-ratios.md#blurred-image-padding) only when the current request explicitly asks for it. Fill alone uses image processing and delivers a lossless PNG by default. Use image compression with blurred padding when the user explicitly asks for both. Aspect ratio conversion alone uses the centered crop.
+- Use [blurred image padding](references/aspect-ratios.md#blurred-image-padding) only when the current request explicitly asks for it. Fill alone uses image processing and delivers a lossless PNG by default. Use image compression with blurred padding when the user explicitly asks for both. For local video files, use [blurred video padding](references/aspect-ratios.md#blurred-video-padding) with the same explicit opt-in. Use video processing for fill alone and video compression when requested. Aspect ratio conversion alone uses the centered crop.
 
 - Keep video audio by default; use `--audio remove` only when requested. Remember explicit audio choices only within this chat; see the video reference.
 
