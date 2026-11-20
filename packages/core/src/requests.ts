@@ -5,6 +5,7 @@ import {
   FaviconSizeSchema,
   PosterOptionsSchema,
   validateAspectRatioOptions,
+  validateImageProcessingOptions,
 } from "@file-forge/media";
 import {
   compressImages,
@@ -37,7 +38,10 @@ export const ImageRequest = Schema.Struct({
 export const ImageCompressionRequest = Schema.Struct({
   operation: Schema.Literal("image-compress"),
   files,
-  options: CompressionOptionsSchema,
+  options: Schema.Struct({
+    ...CompressionOptionsSchema.fields,
+    padding: ImageOptionsSchema.fields.padding,
+  }),
   output: text,
   recursive: Schema.optional(Schema.Boolean),
 });
@@ -111,19 +115,22 @@ export const validateRequest = (input: unknown) =>
       () => new OperationError({ code: "INVALID_INPUT", detail: "Invalid operation request" }),
     ),
     Effect.tap((request) => {
-      if (
-        request.operation === "image" ||
-        request.operation === "image-compress" ||
-        request.operation === "video-compress" ||
-        request.operation === "folder-compress"
-      )
-        return validateAspectRatioOptions(request.options).pipe(
-          Effect.mapError(
-            (error) => new OperationError({ code: "INVALID_INPUT", detail: error.detail }),
-          ),
-        );
-      return Effect.void;
+      switch (request.operation) {
+        case "image":
+        case "image-compress":
+          return validateImageProcessingOptions(request.options);
+        case "video-compress":
+        case "folder-compress":
+          return validateAspectRatioOptions(request.options);
+        default:
+          return Effect.void;
+      }
     }),
+    Effect.mapError((error) =>
+      error instanceof OperationError
+        ? error
+        : new OperationError({ code: "INVALID_INPUT", detail: error.detail }),
+    ),
     Effect.tap((request) => {
       if (request.operation === "image-compress" && request.options.audio !== undefined)
         return Effect.fail(

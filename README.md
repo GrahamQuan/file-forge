@@ -119,6 +119,8 @@ Project uploads use a separate Effect package and an explicit user-maintained pr
 
 Image/video operations support `--ratio W:H` / MCP `options.ratio` for centered cropping before resizing, also for selected folder media. For example, `image compress photo.png --ratio 1:1` or `video compress clip.mp4 --ratio 9:16 --height 720`. No padding or enlargement; explicit width and height must match the ratio. Pixel rounding (even pixels for video) can slightly alter the result. Covers match the cropped video; sources are preserved. See [aspect ratio rules](docs/aspect-ratios.md). Verify installed help/schemas; this describes source capabilities.
 
+For blurred fill alone, use `image process photo.png --blur-fill --ratio 4:3` for a lossless PNG. Use `image compress` with the same options to compress the finished composite as WebP. MCP uses `options.padding: "blur"`. The canvas defaults to `1:1` in this mode and uses a blurred copy of the source behind the complete image. A ratio alone uses centered cropping.
+
 CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
 
 Use `upload apply --progress table` for a progress table, or `--progress lines` for plain lines. The default `auto` selects a live table in suitable terminals. R2 confirmation and public URL status have separate columns; progress stays on stderr.

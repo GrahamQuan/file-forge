@@ -1,6 +1,6 @@
 import { Context, Data, Effect, FileSystem, Layer, Path, Schema, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import sharp, { type Metadata, type OutputInfo } from "sharp";
+import sharp, { type Metadata, type OutputInfo, type Sharp } from "sharp";
 
 export class MediaError extends Data.TaggedError("MediaError")<{
   readonly code:
@@ -47,12 +47,32 @@ export const ImageOptionsSchema = Schema.Struct({
   width: Schema.optional(dimension),
   height: Schema.optional(dimension),
   ratio: Schema.optional(aspectRatio),
+  padding: Schema.optional(Schema.Literal("blur")),
   quality: Schema.optional(
     Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 100 })),
   ),
   format: Schema.optional(Schema.Literals(["webp", "jpeg", "png", "avif"])),
 });
 export type ImageOptions = typeof ImageOptionsSchema.Type;
+const defaultBlurFillRatio = "1:1";
+export const imageOutputSettings = (options: ImageOptions) => {
+  const lossless =
+    options.padding === "blur" && options.preset === undefined && options.quality === undefined;
+  return { format: options.format ?? (lossless ? "png" : "webp"), lossless };
+};
+export const validateImageProcessingOptions = (options: ImageOptions) =>
+  Effect.gen(function* () {
+    yield* validateAspectRatioOptions({
+      ...options,
+      ratio: options.ratio ?? (options.padding === "blur" ? defaultBlurFillRatio : undefined),
+    });
+    const { format, lossless } = imageOutputSettings(options);
+    if (lossless && format === "jpeg")
+      return yield* new MediaError({
+        code: "INVALID_INPUT",
+        detail: "JPEG blur fill requires an explicit compression quality or preset",
+      });
+  });
 export const imageQuality = (options: ImageOptions) =>
   options.quality ?? (options.preset === "clarity" ? 90 : 80);
 export const videoEncoding = (options: { preset?: "standard" | "clarity" }) =>
@@ -64,7 +84,12 @@ export const validateImageOptions = (value: unknown) =>
     Effect.mapError(
       () => new MediaError({ code: "INVALID_INPUT", detail: "Invalid image options" }),
     ),
-    Effect.tap(validateAspectRatioOptions),
+    Effect.map((options) =>
+      options.padding === "blur" && options.ratio === undefined
+        ? { ...options, ratio: defaultBlurFillRatio }
+        : options,
+    ),
+    Effect.tap(validateImageProcessingOptions),
   );
 
 // Internal workflow policy; CLI/MCP image options retain their existing defaults.
@@ -96,12 +121,51 @@ const sharpEffect = <A>(run: () => Promise<A>) =>
         }),
     }),
   );
+
+const makeBlurFilledImage = async (source: Sharp, options: ImageOptions) => {
+  const { autoOrient } = await source.metadata();
+  const { aspect } = ratioValue(options.ratio ?? defaultBlurFillRatio);
+  const width = Math.round(
+    Math.min(
+      Math.max(autoOrient.width, autoOrient.height * aspect),
+      options.width ?? Infinity,
+      (options.height ?? Infinity) * aspect,
+    ),
+  );
+  const height = Math.round(
+    Math.min(
+      Math.max(autoOrient.height, autoOrient.width / aspect),
+      options.height ?? Infinity,
+      (options.width ?? Infinity) / aspect,
+    ),
+  );
+  // Bound the generated canvas as well as the decoded source (Sharp's default pixel limit).
+  if (width < 1 || height < 1 || !(width * height <= 268_402_689))
+    throw new Error("Blur fill produces an invalid canvas size");
+
+  if (width === autoOrient.width && height === autoOrient.height) return source;
+
+  const foreground = source.clone();
+  if (autoOrient.width > width || autoOrient.height > height)
+    foreground.resize({ width, height, fit: "inside", withoutEnlargement: true });
+
+  const { data, info } = await foreground.png().toBuffer({ resolveWithObject: true });
+  if (info.width === width && info.height === height) return sharp(data);
+  const sigma = Math.max(1, Math.min(width, height) * 0.04);
+  return source
+    .resize({ width, height, fit: "cover" })
+    .blur(sigma)
+    .composite([{ input: data, gravity: "centre" }]);
+};
+
 export const ImageEngineLive = Layer.succeed(ImageEngine, {
   inspect: (input) => sharpEffect(() => sharp(input).metadata()),
   process: (input, output, options, encoding = "standard") =>
     sharpEffect(async () => {
       let image = sharp(input).rotate();
-      if (options.ratio !== undefined) {
+      if (options.padding === "blur") {
+        image = await makeBlurFilledImage(image, options);
+      } else if (options.ratio !== undefined) {
         // Crop in displayed coordinates after EXIF orientation, before any resizing.
         const { autoOrient } = await image.metadata();
         const aspect = ratioValue(options.ratio).aspect;
@@ -116,7 +180,10 @@ export const ImageEngineLive = Layer.succeed(ImageEngine, {
           height,
         });
       }
-      if (options.width !== undefined || options.height !== undefined) {
+      if (
+        options.padding !== "blur" &&
+        (options.width !== undefined || options.height !== undefined)
+      ) {
         image = image.resize({
           width: options.width,
           height: options.height,
@@ -126,13 +193,17 @@ export const ImageEngineLive = Layer.succeed(ImageEngine, {
       }
       if (encoding === "lossless-webp")
         return image.webp({ lossless: true, effort: 6 }).toFile(output);
-      if (options.preset === "clarity" && (options.format ?? "webp") === "webp")
+      const { format, lossless } = imageOutputSettings(options);
+      if (lossless) {
+        if (format === "webp") return image.webp({ lossless: true }).toFile(output);
+        if (format === "avif") return image.avif({ lossless: true }).toFile(output);
+        return image.png().toFile(output);
+      }
+      if (options.preset === "clarity" && format === "webp")
         return image
           .webp({ quality: imageQuality(options), effort: 6, smartSubsample: true })
           .toFile(output);
-      return image
-        .toFormat(options.format ?? "webp", { quality: imageQuality(options) })
-        .toFile(output);
+      return image.toFormat(format, { quality: imageQuality(options) }).toFile(output);
     }),
 });
 export const inspectImage = (input: string) =>

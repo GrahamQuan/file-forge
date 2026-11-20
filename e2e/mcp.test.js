@@ -716,7 +716,12 @@ test("MCP ratio schemas and shared validation support centered image/video/folde
       ["compress_folder", "folder-compress", { input: inputs, media: "all" }],
     ]) {
       const schema = listed.find((tool) => tool.name === name).inputSchema;
+      const supportsBlurFill = name === "process_images" || name === "compress_images";
       assert.ok(JSON.stringify(schema.properties.options).includes('"ratio"'));
+      assert.equal(
+        JSON.stringify(schema.properties.options).includes('"padding"'),
+        supportsBlurFill,
+      );
       const request = {
         operation,
         ...paths,
@@ -728,6 +733,7 @@ test("MCP ratio schemas and shared validation support centered image/video/folde
         { ratio: "1:0" },
         { ratio: "1:1", width: 60, height: 40 },
         { ratio: "1/1" },
+        supportsBlurFill ? { padding: "blur", width: 60, height: 40 } : { padding: "blur" },
       ].entries()) {
         const rejected = await call(client, name, {
           ...request,
@@ -755,6 +761,27 @@ test("MCP ratio schemas and shared validation support centered image/video/folde
       const settings = job.result.parameters[name === "compress_video" ? "video" : "image"];
       assert.equal(settings.ratio, "1:1");
       assert.equal(settings.crop, "center");
+      if (supportsBlurFill) {
+        const fillId = `${name}-blur-fill`;
+        const reply = decode(
+          await call(client, name, {
+            ...request,
+            requestId: fillId,
+            options: { padding: "blur" },
+          }),
+        );
+        assert.equal(reply.status, "running");
+        const filled = await terminal(client, fillId);
+        assert.equal(filled.status, "succeeded", JSON.stringify(filled));
+        assert.equal(filled.result.parameters.image.padding, "blur");
+        assert.equal(filled.result.parameters.image.ratio, "1:1");
+        assert.equal(filled.result.parameters.image.crop, undefined);
+        const compressed = name === "compress_images";
+        assert.equal(filled.result.parameters.image.encoding, compressed ? "lossy" : "lossless");
+        const { width, height, format } = await sharp(filled.result.assets[0].output).metadata();
+        assert.deepEqual([width, height], [120, 120]);
+        assert.equal(format, compressed ? "webp" : "png");
+      }
       const cli = spawnSync(
         process.execPath,
         [

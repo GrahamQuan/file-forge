@@ -18,6 +18,7 @@ export const commands = (
   const files = Argument.String("files").pipe(Argument.variadic());
   const output = Flag.String("output").pipe(Flag.optional);
   const recursive = Flag.Boolean("recursive").pipe(Flag.withDefault(false));
+  const blurFill = Flag.Boolean("blur-fill").pipe(Flag.withDefault(false));
   const outputParent = (value: Option.Option<string>) =>
     Effect.gen(function* () {
       const path = yield* Path.Path;
@@ -41,6 +42,7 @@ export const commands = (
       width: Flag.Int("width").pipe(Flag.optional),
       height: Flag.Int("height").pipe(Flag.optional),
       ratio: Flag.String("ratio").pipe(Flag.optional),
+      blurFill,
       quality: Flag.Int("quality").pipe(Flag.optional),
       format: Flag.String("format").pipe(Flag.optional),
       preset: Flag.String("preset").pipe(Flag.optional),
@@ -60,7 +62,7 @@ export const commands = (
         const result = yield* executeRequest({
           operation: "image",
           files: args.files,
-          options,
+          options: { ...options, ...(args.blurFill ? { padding: "blur" } : {}) },
           output: parent,
           recursive: args.recursive,
         });
@@ -77,6 +79,7 @@ export const commands = (
         width: Flag.Int("width").pipe(Flag.optional),
         height: Flag.Int("height").pipe(Flag.optional),
         ratio: Flag.String("ratio").pipe(Flag.optional),
+        ...(kind === "image" ? { blurFill } : {}),
         quality: Flag.Int("quality").pipe(Flag.optional),
         preset: Flag.String("preset").pipe(Flag.optional),
         media: Flag.String("media").pipe(Flag.optional),
@@ -109,6 +112,7 @@ export const commands = (
               ...(Option.isSome(args.width) ? { width: args.width.value } : {}),
               ...(Option.isSome(args.height) ? { height: args.height.value } : {}),
               ...(Option.isSome(args.ratio) ? { ratio: args.ratio.value } : {}),
+              ...(args.blurFill ? { padding: "blur" } : {}),
               ...(Option.isSome(args.quality) ? { quality: args.quality.value } : {}),
               ...(Option.isSome(args.preset) ? { preset: args.preset.value } : {}),
               ...(Option.isSome(args.audio) ? { audio: args.audio.value } : {}),
