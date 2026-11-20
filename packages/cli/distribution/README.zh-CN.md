@@ -61,6 +61,8 @@ GLB 压缩会通过标准图片流程自动生成六张默认 16:9 海报。模�
 
 图片/视频支持 `--ratio W:H` / MCP `options.ratio`，先居中裁剪再缩放，也适用于文件夹中选中的媒体。例如 `image compress photo.png --ratio 1:1` 或 `video compress clip.mp4 --ratio 9:16 --height 720`。不填充、不放大；同时指定宽高时必须与比例一致。像素取整（视频取偶数）可能使结果略有偏差。封面跟随裁剪后的视频，源文件保持不变。 使用前请确认本压缩包的帮助和已连接 MCP 的 schema。
 
+只做模糊填充时，使用 `image process photo.png --blur-fill --ratio 4:3`，默认输出无损 PNG。明确需要压缩时，换用 `image compress` 并保留相同选项，先填充，再将成图编码为 WebP。MCP 使用 `options.padding: "blur"`。此模式默认输出 `1:1`，用原图的模糊副本衬在完整图像后面。只指定比例时仍使用居中裁剪。
+
 CLI 上传进度在 stderr 显示每个文件及按字节加权的总百分比（包括 `--json` 模式）。100% 表示数据已交给 HTTP 传输层，并不代表 R2 已确认。只有收到 R2 成功响应才报告上传成功；公开 URL 检查单独显示，失败时整体结果仍可能为部分完成。
 
 使用 `upload apply --progress table` 显示进度表格，或使用 `--progress lines` 显示普通文本行。默认 `auto` 在合适的终端中显示实时表格。R2 确认和公开 URL 状态分列显示；进度仍输出到 stderr。

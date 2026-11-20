@@ -35,3 +35,18 @@ Video covers come from the first decoded frame of the final cropped video and pa
 Folder selection applies first. Only selected images/videos use the ratio; excluded regular files are copied unchanged, audio/model bytes retain their existing policy, and automatic GLB poster canvases remain unchanged. Poster-only `--ratio` continues to configure a canvas, not this image/video crop workflow.
 
 Sources remain untouched. Manifests record the requested `ratio`, `crop: "center"`, requested bounds and actual asset output dimensions in the existing parameter/asset fields. Standalone deliveries remain v1; folder version selection is unchanged, and older manifests remain readable/re-exportable. Report actual dimensions and intentional edge removal; cropped output savings are not an equivalent-content compression comparison.
+
+## Blurred image padding
+
+Opt in with `--blur-fill` in `image process` or `image compress`, or set `options.padding` to `"blur"` in `process_images` or `compress_images`. The target ratio defaults to `1:1` in this mode. A ratio by itself uses the centered crop.
+
+```sh
+file-forge image process portrait.jpg --blur-fill --json
+file-forge image compress landscape.png --blur-fill --ratio 4:3 --width 1200 --json
+```
+
+After applying EXIF orientation, Sharp fits the complete foreground in the target canvas without enlargement. A second copy of the source covers the canvas and is Gaussian blurred before the foreground is centered over it. The fill uses source pixels. For translucent inputs, the source and background alpha are composited in alpha-capable output formats. An image that already fills the canvas needs no background.
+
+Fill alone uses `image process` and produces a full-color lossless PNG by default. Explicit `--format webp` and `--format avif` alone use lossless encoding. `image compress --blur-fill` opts into compression. It encodes the finished composite as WebP at the selected preset or quality. An explicit quality or preset in `image process` also opts into lossy encoding, including when selecting JPEG, which requires one of those options in blur-fill mode. The MCP equivalents follow the same policy.
+
+With no bounds, the canvas expands to fit the original foreground at the target ratio. Width and height are optional canvas bounds. Both must match the target ratio when supplied together, including the default square ratio. Pixel rounding may slightly alter the actual ratio. Unrepresentable or overly large canvases fail. The manifest records the target `ratio`, `padding: "blur"`, effective format and encoding, quality when lossy, and actual output dimensions. Batch and recursive image inputs use the same policy.

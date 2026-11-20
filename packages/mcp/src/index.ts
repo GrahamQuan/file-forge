@@ -93,14 +93,14 @@ const tools = Toolkit.make(
   }).annotate(Tool.Strict, true),
   Tool.make("process_images", {
     description:
-      "Submit image resize/compression/conversion. Optional options.ratio W:H center-crops before resizing without enlargement; explicit width and height must match ratio. Preserves sources and writes a new delivery directory. Poll job_status.",
+      'Submit image resize/compression/conversion. Optional options.ratio W:H center-crops before resizing without enlargement. Set options.padding to "blur" only when the user asks for blurred fill; it keeps the full image and uses a blurred copy as the background, defaulting to 1:1 when ratio is omitted. Blur fill defaults to lossless PNG. Explicit WebP or AVIF alone is also lossless; quality or preset opts into compression and is required for JPEG. Explicit width and height must match the target ratio. Preserves sources and writes a new delivery directory. Poll job_status.',
     parameters: submission(ImageRequest.fields),
     success,
     failure,
   }).annotate(Tool.Strict, true),
   Tool.make("compress_images", {
     description:
-      "Resize and compress images to WebP. Optional preset clarity prioritizes detail (quality 90); standard remains quality 80. Optional options.ratio W:H center-crops before resizing without enlargement; explicit width and height must match ratio. Without ratio, omitted axes preserve source aspect; no size preserves original dimensions. Poll job_status.",
+      'Resize and compress images to WebP. Optional preset clarity prioritizes detail (quality 90); standard remains quality 80. Optional options.ratio W:H center-crops before resizing without enlargement. Set options.padding to "blur" only when the user asks for blurred fill; it keeps the full image and uses a blurred copy as the background, defaulting to 1:1 when ratio is omitted. This tool encodes the completed composite as WebP. Explicit width and height must match the target ratio. Without ratio, omitted axes preserve source aspect; no size preserves original dimensions. Poll job_status.',
     parameters: submission(ImageCompressionRequest.fields),
     success,
     failure,

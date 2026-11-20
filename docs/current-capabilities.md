@@ -2,24 +2,24 @@
 
 This describes the current source checkout, not a guarantee about any installed release. Check the selected runtime's version/help and MCP tool schemas. Source builds use `0.0.0`; CI stamps release versions. See [installation](installation.md) for release installation and compatibility checks.
 
-| Operation                 | CLI                                     | MCP                        | Behavior                                                                 |
-| ------------------------- | --------------------------------------- | -------------------------- | ------------------------------------------------------------------------ |
-| Image metadata            | `inspect`                               | `inspect_files`            | Read-only image inspection; recursive only when requested                |
-| Image compression         | `image compress`                        | `compress_images`          | WebP, default quality 80; optional dimensions and centered ratio crop    |
-| Image conversion          | `image process`                         | `process_images`           | WebP/JPEG/PNG/AVIF, at least one explicit processing option              |
-| Video compression         | `video compress`                        | `compress_video`           | H.264 MP4, optional AAC, matching first-frame WebP cover                 |
-| Folder compression        | `folder compress`                       | `compress_folder`          | Recursive new copy with normalized hierarchy; other regular files copied |
-| Original directory rename | `folder rename`                         | `rename_folders`           | Explicit relative-path/name map; preview by default, opt-in apply        |
-| Favicon set               | `favicon generate`                      | `generate_favicons`        | Static PNG → PNG/ICO/traced vector SVG, size 16–256, default 64          |
-| Manifest/report           | `manifest export`                       | `export_manifest`          | Inspect prepared assets or re-export a versioned manifest                |
-| Job control               | MCP session                             | `job_status`, `job_cancel` | One running job; session-only records, up to 128                         |
-| Runtime information       | `--version`, `--help`                   | `file_forge_info`          | Version, capabilities/help; MCP root and limits                          |
-| CLI presentation          | `config get/set language`, `--language` | —                          | English and Simplified Chinese; machine schemas remain English           |
-| Project skill copy        | `pnpm skill:copy` (source checkout)     | —                          | Create or fully replace canonical skill copy; preview and backup         |
+| Operation                 | CLI                                     | MCP                        | Behavior                                                                          |
+| ------------------------- | --------------------------------------- | -------------------------- | --------------------------------------------------------------------------------- |
+| Image metadata            | `inspect`                               | `inspect_files`            | Read-only image inspection; recursive only when requested                         |
+| Image compression         | `image compress`                        | `compress_images`          | WebP, default quality 80; optional bounds, centered ratio crop or blurred padding |
+| Image conversion          | `image process`                         | `process_images`           | WebP/JPEG/PNG/AVIF, at least one explicit processing option                       |
+| Video compression         | `video compress`                        | `compress_video`           | H.264 MP4, optional AAC, matching first-frame WebP cover                          |
+| Folder compression        | `folder compress`                       | `compress_folder`          | Recursive new copy with normalized hierarchy; other regular files copied          |
+| Original directory rename | `folder rename`                         | `rename_folders`           | Explicit relative-path/name map; preview by default, opt-in apply                 |
+| Favicon set               | `favicon generate`                      | `generate_favicons`        | Static PNG → PNG/ICO/traced vector SVG, size 16–256, default 64                   |
+| Manifest/report           | `manifest export`                       | `export_manifest`          | Inspect prepared assets or re-export a versioned manifest                         |
+| Job control               | MCP session                             | `job_status`, `job_cancel` | One running job; session-only records, up to 128                                  |
+| Runtime information       | `--version`, `--help`                   | `file_forge_info`          | Version, capabilities/help; MCP root and limits                                   |
+| CLI presentation          | `config get/set language`, `--language` | —                          | English and Simplified Chinese; machine schemas remain English                    |
+| Project skill copy        | `pnpm skill:copy` (source checkout)     | —                          | Create or fully replace canonical skill copy; preview and backup                  |
 
 ## Invariants
 
-Without an explicit ratio, no width and no height means compression skips resizing and preserves original dimensions, with existing orientation handling. One dimension leaves the other automatic; both define maximum bounds without cropping or enlargement. Explicitly resized H.264 dimensions round down to even pixels. Without resize, an original size incompatible with H.264/yuv420p fails rather than being silently changed. Image quality and cover quality do not change video CRF (23).
+Without an explicit ratio or blurred padding, no width and no height means compression skips resizing and preserves original dimensions, with existing orientation handling. One dimension leaves the other automatic; both define maximum bounds without cropping or enlargement. Explicitly resized H.264 dimensions round down to even pixels. Without resize, an original size incompatible with H.264/yuv420p fails rather than being silently changed. Image quality and cover quality do not change video CRF (23).
 
 Media operations preserve originals and create `file-forge-<id>` output directories; on macOS the default parent is Downloads. Source-directory rename is the explicit exception: only named directories change in place, file contents stay intact, and a separate receipt records progress. Keep outputs/receipts outside the relevant source tree. MCP paths must remain in its configured workspace; the configured root itself cannot be renamed.
 
@@ -52,6 +52,8 @@ Video audio defaults to keep; opt in to `--audio remove` for videos or selected 
 Project-based R2 uploads: `upload folders`, `upload config check`, `upload plan`, `upload apply`, `upload verify`; MCP `list_bucket_folders`, `check_upload_config`, `plan_upload`, `upload_files`, `verify_upload`. Independent package, private user-owned config, explicit project/approval, conditional writes, durable sanitized receipts and read-only reconciliation. Upload and MCP startup require no FFmpeg/Chrome; media submission still checks FFmpeg. Local protocol evidence does not establish live R2/CDN compatibility. See [project uploads](project-uploads.md). Folder deliveries exclude default-named private upload configuration.
 
 Image/video processing also accepts `--ratio W:H` / MCP `options.ratio` for opt-in center cropping before bounded resizing, including selected folder media. Explicit width and height must match the ratio. Covers match the cropped video; defaults and manifest versions remain unchanged. See [aspect ratios](aspect-ratios.md).
+
+Image processing and compression accept explicit `--blur-fill` / MCP `options.padding: "blur"`. The complete source is centered over its blurred copy. The default ratio is `1:1` in this mode. Image processing delivers a lossless PNG by default. Image compression encodes the completed composite as WebP. See [aspect ratios](aspect-ratios.md#blurred-image-padding).
 
 CLI upload progress shows per-file and byte-weighted overall percentages on stderr (also with `--json`). 100% means the body was supplied to the HTTP transport, not R2 confirmation. Wait for the confirmed upload result; public URL checks remain separate and can produce a partial result.
 

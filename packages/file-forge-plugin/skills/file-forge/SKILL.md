@@ -1,6 +1,6 @@
 ---
 name: file-forge
-description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize/center-crop/convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Also supports explicitly approved project-based R2 uploads. Does not generate new artwork.
+description: Inspect local image assets, compress folders, images and videos with first-frame covers, losslessly optimize audio/music and GLB models, render six-angle GLB posters, resize, crop, add blurred padding, or convert image batches, generate PNG/ICO/traced-SVG favicons, or export generic delivery manifests with FileForge. Also orchestrate custom Sharp/FFmpeg operations beyond the built-in workflows when requested media processing needs them. Also supports explicitly approved project-based R2 uploads. Does not generate new artwork.
 ---
 
 # FileForge
@@ -33,13 +33,13 @@ Naming collisions fail before output creation. Report skipped and failed assets.
 
 ### Images (Sharp)
 
-1. Apply any explicit centered ratio crop, then reduce width and height to the agreed bounds.
+1. Use blurred padding only when the current request explicitly asks for it. Set `options.padding: "blur"` and pass the requested ratio, or omit it for `1:1`. The original image stays centered over a blurred copy of the source. For fill alone, use `process_images` and deliver a lossless PNG by default. Use `compress_images` with padding when the user requests fill and compression. For explicitly requested compression in another format, pass quality or preset to `process_images`. A ratio conversion alone uses a centered crop before resizing.
 2. Compress with quality 80 unless the user supplies another quality (1–100).
 3. Encode as WebP. Resize and compression happen in one Sharp encoding pass.
 
 Use `compress_images` with operation `image-compress`, `files`, `output`, and
-`options: { width, height, ratio, quality }`. Use this for compression requests, including when the
-user calls the general image workflow. Keep `process_images` for explicit general conversion.
+`options: { width, height, ratio, padding, quality }`. Use this for compression requests, including when the
+user calls the general image workflow. Use `process_images` for fill alone or general format conversion.
 
 ### Videos (FFmpeg)
 
@@ -69,7 +69,7 @@ and close temporary browser resources when finished; preserve user-owned resourc
   Other operations use `inspect_files`, `process_images`, `generate_favicons`, or `export_manifest`.
   Supply a unique `requestId` and the tool's `operation` literal (`inspect`, `image`, `favicon`, or `export`).
 - Inspection takes `files` and optional `recursive`. Image processing adds `options` with explicit width,
-  height, ratio, quality (1–100), and/or format (`webp`, `jpeg`, `png`, `avif`), plus `output`.
+  height, ratio, padding, quality (1–100), and/or format (`webp`, `jpeg`, `png`, `avif`), plus `output`.
 - Favicons take `input` (static PNG), `output`, and optional `size` (16–256, default 64).
   SVG contains traced vector shapes; warn that tracing can change colors, edges, and partial transparency.
 - Export takes `files` OR `manifest`, `output`, and optional `recursive`/`includePaths`.

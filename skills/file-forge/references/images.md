@@ -12,7 +12,7 @@ file-forge image process "/absolute/input.png" --format png --quality 90 --json
 
 Compression produces WebP at quality 80 by default; supported explicit quality is integer 1–100. Without ratio, no dimensions means no resizing. Width-only or height-only sets that maximum while preserving aspect ratio. Without ratio, two axes mean fit inside, not exact square/crop/stretch. Small images are not enlarged. Orientation metadata is applied by the image pipeline.
 
-For explicit output formats use `image process`, supporting WebP, JPEG, PNG and AVIF; it needs at least one explicit option such as ratio, format, quality or a dimension. Image compression accepts multiple files and opt-in `--recursive`; it produces flat, uniquely named outputs. For preserving directory hierarchy, use [folders](folders.md).
+For explicit output formats use `image process`, supporting WebP, JPEG, PNG and AVIF; it needs at least one explicit option such as ratio, blurred padding, format, quality or a dimension. Image compression accepts multiple files and opt-in `--recursive`; it produces flat, uniquely named outputs. For preserving directory hierarchy, use [folders](folders.md).
 
 MCP request bodies, plus a unique `requestId`:
 
@@ -26,4 +26,6 @@ For requested operations beyond these presets, select [custom processing](custom
 
 Use the opt-in `--preset clarity` / MCP `options.preset: "clarity"` when the user prioritizes detail while still compressing. It uses image/cover quality 90 (WebP effort 6, smartSubsample enabled) and video CRF 18 / slow. Omission keeps quality 80 and CRF 23 / medium. Explicit quality overrides images/covers only. No automatic resizing or sharpening. This is lossy and may be slower/larger; never promise a quality threshold or the smallest possible output. Audio/model optimization and automatic GLB posters keep their existing policies. Check installed support before using the flag.
 
-For an explicit target aspect, use `--ratio W:H` / MCP `options.ratio` and follow [center cropping](aspect-ratios.md). Crop before bounded resizing; two explicit dimensions must match the ratio. Omitted dimensions need no question. Never infer cropping from dimensions alone.
+Use [blurred image padding](aspect-ratios.md#blurred-image-padding) only when explicitly requested. It defaults to a square canvas and derives its background from the source image. Use image processing for a fill-only request to get a lossless PNG by default. Use image compression with blurred padding when the request explicitly calls for both.
+
+For ratio conversion alone, use `--ratio W:H` / MCP `options.ratio` and follow [center cropping](aspect-ratios.md). Crop before bounded resizing; two explicit dimensions must match the ratio. Omitted dimensions need no question. Never infer cropping from dimensions alone.

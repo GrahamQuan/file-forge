@@ -39,6 +39,8 @@ file-forge image compress "$HOME/Downloads/file-forge/inputs" \
   --output "$HOME/Downloads/file-forge/outputs" --json
 ```
 
+For blurred padding alone, run `file-forge image process photo.png --blur-fill --ratio 4:3 --json` for a lossless PNG. Use `image compress` with the same arguments to opt into WebP compression after filling. Omit the ratio for a square canvas. See [blurred image padding](aspect-ratios.md#blurred-image-padding).
+
 For explicit format conversion, use the general image operation:
 
 ```sh

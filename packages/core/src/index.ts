@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { Cause, Data, Effect, Exit, FileSystem, Option, Path, Schema } from "effect";
 import {
   compressVideo,
+  imageOutputSettings,
   imageQuality,
   videoEncoding,
   validateCompressionOptions,
@@ -367,6 +368,7 @@ export const processImages = (
     const validated = yield* validateImageOptions(options);
     if (!Object.values(validated).some((value) => value !== undefined))
       return yield* invalid("Explicit image options are required");
+    const { format, lossless } = imageOutputSettings(validated);
     const fs = yield* FileSystem.FileSystem;
     const paths = yield* Path.Path;
     let ancestor = paths.resolve(outputParent);
@@ -405,16 +407,23 @@ export const processImages = (
       parameters: {
         recursive,
         image: {
-          ...(validated.ratio === undefined ? {} : { crop: "center" }),
+          ...(validated.ratio !== undefined && validated.padding === undefined
+            ? { crop: "center" }
+            : {}),
           ...Object.fromEntries(
             Object.entries(validated).filter(([, value]) => value !== undefined),
           ),
+          ...(validated.padding === "blur"
+            ? {
+                format,
+                encoding: lossless ? "lossless" : "lossy",
+                ...(lossless ? {} : { quality: imageQuality(validated) }),
+              }
+            : {}),
           ...(validated.preset === "clarity"
             ? {
                 quality: imageQuality(validated),
-                ...((validated.format ?? "webp") === "webp"
-                  ? { effort: 6, smartSubsample: "true" }
-                  : {}),
+                ...(format === "webp" ? { effort: 6, smartSubsample: "true" } : {}),
               }
             : {}),
         },
@@ -428,10 +437,7 @@ export const processImages = (
           assets.push(asset);
           continue;
         }
-        const output = path.join(
-          directory,
-          outputName(asset.originalName, asset.source, validated.format ?? "webp"),
-        );
+        const output = path.join(directory, outputName(asset.originalName, asset.source, format));
         yield* Effect.uninterruptible(
           Effect.gen(function* () {
             const result = yield* processImage(asset.source, output, validated);
@@ -564,12 +570,24 @@ export {
 
 export const compressImages = (
   inputs: readonly string[],
-  options: CompressionOptions,
+  options: CompressionOptions & Pick<ImageOptions, "padding">,
   output: string,
   recursive = false,
 ) =>
   Effect.flatMap(validateCompressionOptions(options), (validated) =>
-    processImages(inputs, { ...validated, format: "webp" }, output, recursive),
+    processImages(
+      inputs,
+      {
+        ...validated,
+        ...(options.padding === "blur" && validated.quality === undefined
+          ? { preset: validated.preset ?? "standard" }
+          : {}),
+        padding: options.padding,
+        format: "webp",
+      },
+      output,
+      recursive,
+    ),
   );
 
 export const compressVideoFile = (
