@@ -48,10 +48,11 @@ test("video CLI blur-fills each frame and delivers a preview-compatible H.264 MP
       .filter((line) => /^\d/.test(line))
       .map((line) => line.split(",").at(-1).trim());
   const assertMatchingForeground = (output, input, crop, referenceFilter = "null") => {
-    // Compare luma so odd crop offsets and 4:2:0 chroma sampling do not skew alignment.
+    // Read the Y plane directly so RGB conversion defaults and odd chroma offsets do not skew alignment.
+    const luma = "extractplanes=y,scale=in_range=full:out_range=full,format=gray";
     const graph = [
-      `[0:v]format=gray,crop=${crop}:exact=1,settb=AVTB,setpts=PTS-STARTPTS[foreground]`,
-      `[1:v]${referenceFilter},format=gray,settb=AVTB,setpts=PTS-STARTPTS[reference]`,
+      `[0:v]${luma},crop=${crop}:exact=1,settb=AVTB,setpts=PTS-STARTPTS[foreground]`,
+      `[1:v]${referenceFilter},${luma},settb=AVTB,setpts=PTS-STARTPTS[reference]`,
       "[foreground][reference]psnr=shortest=1",
     ].join(";");
     const result = run(process.env.FFMPEG_PATH || "ffmpeg", [
@@ -223,7 +224,7 @@ test("video CLI blur-fills each frame and delivers a preview-compatible H.264 MP
       normalized.assets[0].output,
       anamorphic,
       "96:27:0:34",
-      "scale=96:27,setsar=1",
+      "scale=96:27,setsar=1,format=yuv444p10le",
     );
 
     const crop = success("compress", source, "--ratio", "1:1");

@@ -102,9 +102,13 @@ export const videoBlurPaddingFilter = (
       supportedPrimaries.has(primaries) &&
       supportedTransfers.has(transfer);
     // The same transfer and primaries can be used in the MP4 and its RGB cover.
-    const colorFilter = colorManaged
-      ? `,colorspace=ispace=${matrix}:iprimaries=${primaries}:itrc=${transfer}:irange=${range}:all=bt709:trc=iec61966-2-1:range=tv:format=yuv420p`
-      : "";
+    const alreadyMatches =
+      matrix === "bt709" && primaries === "bt709" && transfer === "iec61966-2-1" && range === "tv";
+    const colorFilter = !colorManaged
+      ? ""
+      : alreadyMatches
+        ? ",setparams=colorspace=bt709:color_primaries=bt709:color_trc=iec61966-2-1:range=tv,format=yuv420p"
+        : `,colorspace=ispace=${matrix}:iprimaries=${primaries}:itrc=${transfer}:irange=${range}:all=bt709:trc=iec61966-2-1:range=tv:format=yuv420p`;
     const scaleColors = !colorManaged
       ? ""
       : rgb
